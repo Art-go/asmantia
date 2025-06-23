@@ -24,6 +24,12 @@ class Map(Obj):
                 maps.append(TileMap.from_image(io.BytesIO(f.read()), tileset, info["mapping"]))
         return cls(maps, pos=info.get("pos", None), parent=parent)
 
+    @classmethod
+    def from_folder_server(cls, folder: str | os.PathLike):
+        with open(folder + "/info.json") as f:
+            info: dict = json.load(f)
+        return info,
+
     def render(self, cam):
         for m in self.maps:
             m.render(cam)

@@ -234,4 +234,17 @@ class TileMap(Obj):
         for col in self.grid[max(tl_chunk.x, 0):min(rd_chunk.x, len(self.grid))]:
             for chunk in col[max(tl_chunk.y, 0):min(rd_chunk.y, len(col))]:
                 chunk.render(cam)
-        import Utils
+        tl_chunk = tl_chunk-3
+        rd_chunk = rd_chunk+3
+        for col in self.grid[max(tl_chunk.x, 0):min(rd_chunk.x, len(self.grid))]:
+            for chunk in col[max(tl_chunk.y, 0):min(rd_chunk.y, len(col))]:
+                if chunk.is_empty:
+                    continue
+                if not chunk.cached_valid:
+                    chunk.cache()
+                    break
+                if cam.zoom not in chunk.cached_scaled:
+                    chunk.scale(cam.zoom)
+            else:
+                continue
+            break

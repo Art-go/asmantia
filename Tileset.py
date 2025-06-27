@@ -4,8 +4,10 @@ import os
 from math import ceil
 
 import pygame
+from OpenGL.GL import glDeleteTextures
 from PIL import Image
 
+import GLUtils
 from Camera import Camera
 from Object import Obj
 from Renderer import Renderer
@@ -20,49 +22,32 @@ class Tile(Renderer):
         super().__init__(img, parent=parent)
 
     # noinspection PyMethodOverriding
-    def render(self, cam, pos):
+    def render(self, surf, pos):
         """
-
+        :type surf: pygame.Surface
         :type pos: list[Vec2]
-        :type cam: Camera.Camera
         """
-        if cam.zoom not in self.scaled_img:
-            self.scale(cam.zoom)
-        img = self.scaled_img[cam.zoom]
         for p in pos:
-            cam.screen.blit(img, cam.world_to_screen(p).tuple)
+            surf.blit(self.src, p.int_tuple)
 
 
 class DirectionalTile(Tile):
     imgs: list[pygame.Surface]
-    scaled_imgs: dict[int | float, list[pygame.Surface]]
 
     # noinspection PyMissingConstructor
     def __init__(self, imgs: list[pygame.Surface], *, parent=None):
         self.parent = parent
         self.imgs = [i.convert_alpha() for i in imgs]
-        self.scaled_imgs = {}
-
-    def scale(self, factor: int | float):
-        assert len(self.scaled_imgs) < 1024
-        self.scaled_imgs[factor] = []
-        for i in self.imgs:
-            self.scaled_imgs[factor].append(
-                pygame.transform.scale(i, ceil(Vec2.from_tuple(i.get_size()) * factor).tuple))
 
     # noinspection PyMethodOverriding
-    def render(self, cam, pos):
+    def render(self, surf, pos):
         """
-
+        :type surf: pygame.Surface
         :type pos: list[list[Vec2]]
-        :type cam: Camera.Camera
         """
-        if cam.zoom not in self.scaled_imgs:
-            self.scale(cam.zoom)
         for i, tpos in enumerate(pos):
-            img = self.scaled_imgs[cam.zoom][i]
             for p in tpos:
-                cam.screen.blit(img, cam.world_to_screen(p).tuple)
+                surf.blit(self.imgs[i], p.int_tuple)
 
 
 class Tileset:
@@ -94,9 +79,8 @@ class Chunk(Obj):
     grid: list[list[Tile | None]]
     tile_pos: dict[Tile, list[Vec2] | list[list[Vec2]]]
     cached: pygame.Surface
+    cached_tex: int | None
     cached_valid: bool = False
-    cached_scaled: dict[int, pygame.Surface]
-    cam: Camera
     size: Vec2
     is_empty: bool = True
 
@@ -107,21 +91,19 @@ class Chunk(Obj):
         self.tile_size = tile_size
         self.grid = grid
         self.tile_pos = tile_pos
-        self.cached_scaled = {}
         self.size = size
         self.cached = pygame.Surface(self.size.tuple, pygame.SRCALPHA)
         self.cached_valid = False
-        self.cam = Camera(self.size.x, self.cached, parent=self)
+        self.cached_tex = None
         self.check_empty()
-
-    def scale(self, factor: int | float):
-        assert len(self.cached_scaled) < 1024
-        self.cached_scaled[factor] = pygame.transform.scale(self.cached, ceil(self.size * factor).tuple)
 
     def cache(self):
         self.cached.fill((0, 0, 0, 0))
         for t in self.set.tiles.values():
-            t.render(self.cam, self.tile_pos[t])
+            t.render(self.cached, self.tile_pos[t])
+        if self.cached_tex is not None:
+            glDeleteTextures([self.cached_tex])
+        self.cached_tex = GLUtils.surface_to_texture(self.cached)
         self.cached_valid = True
 
     def render(self, cam: Camera):
@@ -133,9 +115,10 @@ class Chunk(Obj):
             return
         if not self.cached_valid:
             self.cache()
-        if cam.zoom not in self.cached_scaled:
-            self.scale(cam.zoom)
-        cam.screen.blit(self.cached_scaled[cam.zoom], cam.world_to_screen(self.global_pos).tuple)
+
+        pos = self.global_pos
+        size = self.size
+        GLUtils.queue_draw(pos.x, pos.y, size.x, size.y, self.cached_tex)
 
     def check_empty(self):
         self.is_empty = True
@@ -184,6 +167,8 @@ class TileMap(Obj):
                             continue
             # dividing to chunks
             size = Vec2(tile_size * CHUNK_SIZE, tile_size * CHUNK_SIZE)
+            import time
+            start = time.time()
             for cy, crow in enumerate(self.grid):
                 for cx, chunk in enumerate(crow):
                     cgrid: list[list[Tile | None]] = [[None for _ in range(CHUNK_SIZE)] for _ in range(CHUNK_SIZE)]
@@ -197,7 +182,8 @@ class TileMap(Obj):
 
                     for y in range(cpos.y, min(cpos.y + CHUNK_SIZE, height)):
                         for x in range(cpos.x, min(cpos.x + CHUNK_SIZE, width)):
-                            cgrid[x % CHUNK_SIZE][y % CHUNK_SIZE] = cell = grid[x][y]
+                            lx, ly = x % CHUNK_SIZE, y % CHUNK_SIZE
+                            cgrid[lx][ly] = cell = grid[x][y]
                             if not cell:
                                 continue
                             if isinstance(cell, DirectionalTile):
@@ -210,12 +196,13 @@ class TileMap(Obj):
                                     index += 4
                                 if x + 1 < width and grid[x + 1][y] is cell:
                                     index += 8
-                                tile_pos[cell][index].append(Vec2(x * tile_size, y * tile_size))
+                                tile_pos[cell][index].append(Vec2(lx * tile_size, ly * tile_size))
                             else:
                                 # noinspection PyTypeChecker
-                                tile_pos[cell].append(Vec2(x * tile_size, y * tile_size))
+                                tile_pos[cell].append(Vec2(lx * tile_size, ly * tile_size))
 
                     self.grid[cx][cy] = Chunk(tileset, tile_pos, cgrid, tile_size, size, cpos * tile_size, self)
+            print(time.time()-start)
 
     @classmethod
     def from_image(cls, img: io.BytesIO, tileset, mapping: dict[int, str], tile_size: int = 16, *, pos=None,
@@ -234,8 +221,8 @@ class TileMap(Obj):
         for col in self.grid[max(tl_chunk.x, 0):min(rd_chunk.x, len(self.grid))]:
             for chunk in col[max(tl_chunk.y, 0):min(rd_chunk.y, len(col))]:
                 chunk.render(cam)
-        tl_chunk = tl_chunk-3
-        rd_chunk = rd_chunk+3
+        tl_chunk = tl_chunk-2
+        rd_chunk = rd_chunk+2
         for col in self.grid[max(tl_chunk.x, 0):min(rd_chunk.x, len(self.grid))]:
             for chunk in col[max(tl_chunk.y, 0):min(rd_chunk.y, len(col))]:
                 if chunk.is_empty:
@@ -243,8 +230,6 @@ class TileMap(Obj):
                 if not chunk.cached_valid:
                     chunk.cache()
                     break
-                if cam.zoom not in chunk.cached_scaled:
-                    chunk.scale(cam.zoom)
             else:
                 continue
             break

@@ -1,29 +1,27 @@
+import json
 import logging
 import selectors
 import signal
 import socket
 import sys
 import types
-from enum import IntEnum
 
 import pygame
 
-
-##############
-# Status Def #
-##############
-class Status(IntEnum):
-    CONNECTED = 100
-    PENDING = 20
-
+import Network
+from Network import send, recv, close_connection, SocketClosed, Status
 
 ################################
 # Constants and Read-only(ish) #
 ################################
-# Server config "
+# Server config #
 IP = "127.0.0.1"
 PORT = 8080
 SERVER_CAPACITY = 6
+
+CRED_CIPHER = b"%$?_.$/3.@/?1>$>--^ ^-%_>_4=|9/."
+with open("Data/credentials.json", "r") as f:
+    all_creds: dict[str, dict] = json.load(f)
 
 # Game constants #
 SPEED = 0.25
@@ -33,8 +31,6 @@ logging.basicConfig(level=logging.DEBUG,
                     format="{asctime}:{levelname}:{name}:{message}", style="{",
                     stream=sys.stdout
                     )
-
-CRED_CYPHER = b"%$?_.$/@.@/?*>$>--^^-%_>_$=|$/."
 
 #############
 # Variables #
@@ -55,68 +51,50 @@ listening = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 listening.bind((IP, PORT))
 
 
-class SocketClosed(Exception):
-    ...
-
-
-def recv(sock, data, *args, **kwargs):
-    try:
-        return sock.recv(*args, **kwargs)
-    except (BrokenPipeError, ConnectionResetError):
-        logging.error(f"Read fail: {data.addr} (disconnected)")
-        close_connection(sock, data.addr)
-        raise SocketClosed
-
-
-def send(sock, data, *args, **kwargs):
-    try:
-        return sock.send(*args, **kwargs)
-    except (BrokenPipeError, ConnectionResetError):
-        logging.error(f"Read fail: {data.addr} (disconnected)")
-        close_connection(sock, data.addr)
-        raise SocketClosed
-
-
 def accept_connection(key):
     conn, addr = key.fileobj.accept()
     logging.info(f"Connecting...: {addr}")
     conn.setblocking(False)
-    data = types.SimpleNamespace(addr=addr, inb=b"", outb=b"", status=Status.PENDING)
+    data = types.SimpleNamespace(addr=addr, inb=b"", outb=b"", status=Status.PENDING, info=None)
     events = selectors.EVENT_READ
     sel.register(conn, events, data=data)
-    send(conn, data, b"ASMANTIA SERVER: PENDING FOR CRED")
+    send(sel, conn, data, b"ASMANTIA SERVER: PENDING FOR CRED", send_all=True)
 
 
 def finish_connection(key):
     data = key.data
-    creds = recv(key.fileobj, data, 1024)
-    send(key.fileobj, data, b"ACCEPT")
+    info = all_creds.get(
+        bytes(
+            [b ^ CRED_CIPHER[i % len(CRED_CIPHER)]
+             for i, b in enumerate(recv(sel, key.fileobj, data, 1024))]
+        ).decode(), None
+    )
+    if not info:
+        send(sel, key.fileobj, data, b"REJECT", send_all=True)
+        Network.close_connection(sel, socket)
+        return
+    send(sel, key.fileobj, data, b"ACCEPT", send_all=True)
     logging.info(f"Connection Complete: {data.addr}")
+    send(sel, key.fileobj, data, json.dumps(info).encode(), send_all=True)
     data.status = Status.CONNECTED
     sel.modify(key.fileobj, selectors.EVENT_READ | selectors.EVENT_WRITE, data=data)
-
-
-def close_connection(sock, addr=None):
-    logging.info(f"Closing {addr if addr else 'Unknown'}")
-    sel.unregister(sock)
-    sock.close()
 
 
 def handle_conn(key, mask):
     sock = key.fileobj
     data = key.data
     if mask & selectors.EVENT_READ:
-        recv_data = recv(sock, data, 1024)
+        recv_data = recv(sel, sock, data, 1024)
         if recv_data:
             logging.info(f"Receiving {recv_data!r} from {data.addr}")
             data.outb += recv_data
         else:
             logging.info(f"Closing connection: {data.addr}")
-            close_connection(sock, data.addr)
+            close_connection(sel, sock, addr=data.addr)
     if mask & selectors.EVENT_WRITE:
         if data.outb:
             logging.info(f"Sending {data.outb!r} to {data.addr}")
-            sent = send(sock, data, data.outb)
+            sent = send(sel, sock, data, data.outb)
             data.outb = data.outb[sent:]
 
 
@@ -126,7 +104,7 @@ hui = True
 def handle_sigint(_signum, _frame):
     global hui
     logging.info("KeyboardInterrupt")
-    running = False
+    hui = False
 
 
 signal.signal(signal.SIGINT, handle_sigint)
@@ -151,7 +129,7 @@ try:
             except SocketClosed:
                 logging.warning("Socket closed abruptly")
 
-        dt = clock.tick(1/4)
+        dt = clock.tick(60)
 except Exception as e:
     logging.exception(e)
 finally:

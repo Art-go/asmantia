@@ -1,38 +1,24 @@
-import pygame
-
 from Object import Obj
 from Vec2 import Vec2
 
 
 class Camera(Obj):
     width: int
-    screen: pygame.Surface
     zoom: float | int
     world_up_left: Vec2
     world_down_right: Vec2
-    offset: Vec2
     center: bool
 
-    def __init__(self, width: int, screen: pygame.Surface, *, pos=None, parent=None, center: bool = False):
+    def __init__(self, width: int, size: tuple[int, int], *, pos=None, parent=None, center: bool = False):
         super().__init__(pos=pos, parent=parent)
         self.center = center
-        self.screen = screen
-        if center:
-            self._width = screen.get_width()
-            self.width = width
-        else:
-            self.offset = Vec2(0, 0)
-            self._width = width
+        self.size = Vec2.from_tuple(size)
+        self.width = width
         self.recalculate_zoom()
+        self.update()
 
     def recalculate_zoom(self):
-        self.zoom = self.screen.get_width() / self._width
-        if self.center:
-            self.offset = -self.size / self.zoom / 2
-
-    @property
-    def size(self):
-        return Vec2.from_tuple(self.screen.get_size())
+        self.zoom = self.size.x / self._width
 
     @property
     def world_size(self):
@@ -48,12 +34,10 @@ class Camera(Obj):
             return
         self._width = w
         self.recalculate_zoom()
-        if self.center:
-            self.offset = -self.size / self.zoom / 2
 
     @property
     def global_pos(self):
-        return super().global_pos + self.offset
+        return super().global_pos
 
     def screen_to_world(self, screen_pos):
         """
@@ -61,7 +45,7 @@ class Camera(Obj):
         :type screen_pos: Vec2
         :rtype: Vec2
         """
-        return screen_pos / self.zoom + self.global_pos
+        return screen_pos / self.zoom + self.global_pos - self.world_size / 2
 
     def world_to_screen(self, world_pos):
         """
@@ -69,7 +53,7 @@ class Camera(Obj):
         :type world_pos: Vec2
         :rtype: Vec2
         """
-        return (world_pos - self.global_pos) * self.zoom
+        return (world_pos - self.global_pos + self.world_size / 2) * self.zoom
 
     def render(self, to_render: Obj | list[Obj] | tuple[Obj]):
         self.update()
@@ -79,5 +63,5 @@ class Camera(Obj):
             obj.render(self)
 
     def update(self):
-        self.world_up_left = self.global_pos
+        self.world_up_left = self.global_pos - self.world_size / 2
         self.world_down_right = self.screen_to_world(self.size)

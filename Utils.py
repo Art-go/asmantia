@@ -1,27 +1,28 @@
 import pygame
 
+import GLUtils
 from Vec2 import Vec2
 
 
 #############
 # Functions #
 #############
-def render_text(text: str, font: pygame.font.Font, scrn: pygame.Surface, pos, fore=(255, 255, 255), back=(0, 0, 0)):
-    if (text, font, fore, back) in prerendered_text:
-        rendered_text = prerendered_text[text, font, fore, back]
-    else:
-        prerendered_text[text, font, fore, back] = rendered_text = prerender_text(text, font, fore, back)
-    text_rect = rendered_text.get_rect(**pos)
-    scrn.blit(rendered_text, text_rect)
-    return rendered_text
+def render_text(text: str, font: pygame.font.Font, pos, fore=(255, 255, 255), back=(0, 0, 0)):
+    surf, tex = prerender_text(text, font, fore, back)
+    text_rect: pygame.Rect = surf.get_rect(**pos)
+    GLUtils.queue_draw(text_rect.x, text_rect.y, text_rect.width, text_rect.height, tex)
 
 
 def prerender_text(text: str, font: pygame.font.Font, fore=(255, 255, 255), back=(0, 0, 0)):
+    if (text, font, fore, back) in prerendered_text:
+        return prerendered_text[text, font, fore, back]
     rendered_text = font.render(text, True, fore)
-    background = pygame.Surface((rendered_text.get_width() + 6, rendered_text.get_height() + 6), pygame.SRCALPHA)
+    background = pygame.Surface(
+        (rendered_text.get_width() + 6, rendered_text.get_height() + 6), pygame.SRCALPHA)
     background.fill(back)
     background.blit(rendered_text, (3, 3))
-    return background
+    prerendered_text[text, font, fore, back] = background, GLUtils.surface_to_texture(background)
+    return prerendered_text[text, font, fore, back]
 
 
 prerendered_text = {}
@@ -32,15 +33,15 @@ debug_pos = []
 debug_offset = []
 debug_screen = None
 debug_font = None
-debug_blit_queue = []
+debug_queue = []
 
 
-def update_debug_info(pos: list[list[str | Vec2]] = None, screen=None, font=None):
+def update_debug_info(pos: list[list[str | Vec2]] = None, size=None, font=None):
     global debug_relpos, debug_screen, debug_font
     if pos:
         debug_relpos = pos
-    if screen:
-        debug_screen = screen
+    if size:
+        debug_screen = pygame.Surface(size)
     if font:
         debug_font = font
     debug_pos.clear()
@@ -53,21 +54,18 @@ def update_debug_info(pos: list[list[str | Vec2]] = None, screen=None, font=None
 def clear_debug():
     global debug_offset
     debug_offset = [Vec2(0, 0) for _ in debug_pos]
-    debug_blit_queue.clear()
 
 
 def debug(text: str, p: int = 0):
     assert (isinstance(debug_font, pygame.font.Font))
     assert (isinstance(debug_screen, pygame.Surface))
     pos = {debug_pos[p][0]: (debug_pos[p][1] + debug_offset[p]).tuple}
-    rendered_text = debug_font.render(text, True, (255, 255, 255), (0, 0, 0))
-    text_rect = rendered_text.get_rect(**pos)
-    debug_offset[p].y += rendered_text.get_size()[1]
+    surf, tex = prerender_text(text, debug_font)
+    text_rect: pygame.Rect = surf.get_rect(**pos)
+    debug_queue.append((text_rect.x, text_rect.y, text_rect.width, text_rect.height, tex))
+    debug_offset[p].y += text_rect.height
 
-    debug_blit_queue.append((rendered_text, text_rect))
 
-
-def debug_draw():
-    assert (isinstance(debug_screen, pygame.Surface))
-    for text, rect in debug_blit_queue:
-        debug_screen.blit(text, rect)
+def draw_debug():
+    GLUtils.batch_draw(debug_queue)
+    debug_queue.clear()

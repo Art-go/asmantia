@@ -1,33 +1,33 @@
+import io
+import json
 import logging
-import sys
 import os
 import selectors
 import signal
 import socket
+import sys
 import types
 from getpass import getpass
+import gzip
 
 import pygame
-from OpenGL.GL import *
-from OpenGL.GLU import *
+from OpenGL import GL, GLU
 
+import GLUtils
 import Utils
 from Camera import Camera
-from Character import Character
+from Character import Character, CharSheet
 from Map import Map
 from Network import SocketClosed, recv, send
-from Renderer import Renderer
-from Tileset import Tileset
+from Tilemap import Tileset
+from Ui import UiRenderer, Canvas, UiTextRenderer, UiElement
 from Vec2 import Vec2
-import GLUtils
 
 pygame.init()
 
 ###########
 # Network #
 ###########
-CRED_CIPHER = b"%$?_.$/3.@/?1>$>--^ ^-%_>_4=|9/."
-
 ip = input("Enter ip (empty for 127.0.0.1):") or "127.0.0.1"
 port = int(input("Enter port (empty for 8080):") or 8080)
 creds = getpass("Credentials: ") if not os.environ.get("DEBUG", False) else input("DEBUG:")
@@ -41,7 +41,7 @@ def handle_sigint(_signum, _frame):
 
 signal.signal(signal.SIGINT, handle_sigint)
 
-logging.basicConfig(level=logging.INFO,
+logging.basicConfig(level=logging.DEBUG,
                     format="{asctime}:{levelname}:{name}:{message}", style="{",
                     stream=sys.stdout
                     )
@@ -52,11 +52,11 @@ sel = selectors.DefaultSelector()
 data = types.SimpleNamespace(addr=(ip, port), outb=b"", inb=b"")
 sel.register(sock, selectors.EVENT_READ | selectors.EVENT_WRITE)
 assert recv(sel, sock, data, 1024) == b"ASMANTIA SERVER: PENDING FOR CRED"
-# false positive inspection:
-# noinspection PyTypeChecker
-send(sel, sock, data, bytes([b ^ CRED_CIPHER[i % len(CRED_CIPHER)] for i, b in enumerate(creds.encode())]),
-     send_all=True)
+send(sel, sock, data, creds.encode(), send_all=True)
 assert recv(sel, sock, data, 1024) == b"ACCEPT"
+char_info = json.loads(recv(sel, sock, data, 1024).decode())
+with gzip.GzipFile(fileobj=io.BytesIO(recv(sel, sock, data, 4096))) as gz:
+    sheet = json.loads(gz.read().decode())
 sock.setblocking(False)
 
 ################################
@@ -64,18 +64,21 @@ sock.setblocking(False)
 ################################
 FLAGS = pygame.RESIZABLE | pygame.DOUBLEBUF | pygame.OPENGL
 pygame.display.set_caption("Asmantia Client")
+ROOT = char_info.get("root", False)
 
 fonts = {
     'Nicks': pygame.font.Font('Assets/Fonts/Exo2-Bold.ttf', 12),
     'Debug': pygame.font.Font('Assets/Fonts/Exo2-Regular.ttf', 16),
+    'ChInfo.H1': pygame.font.Font('Assets/Fonts/Exo2-Bold.ttf', 20),
+    'ChInfo.H2': pygame.font.Font('Assets/Fonts/Exo2-Bold.ttf', 14),
 }
 
 # WASD #
-SPEED = 0.25
+SPEED = 1
 
 ZOOM_FACTOR = 2 ** 0.25
 MIN_W = 160
-MAX_W = 2400
+MAX_W = 1600
 
 #############
 # Variables #
@@ -108,20 +111,42 @@ fps, dt, dt_spike = 0, 0, 0
 # Tiles #
 #########
 tileset = Tileset().load_set("Assets/Tiles/Tileset.png")
-opened_map = Map.from_folder("Data/Maps/test_map_big", tileset)
+opened_map = Map.from_folder("Data/Maps/test_map", tileset)
 
 ###############
 # Scene Setup #
 ###############
 # Player #
 Character.setup_nicks(font=fonts["Nicks"], fore=(255, 255, 255), back=(0, 0, 0, 127))
-player = Character(name="God Almighty",
-                   sprite=Renderer(pygame.image.load("Assets/Sprites/Sprites.png")
-                                   .subsurface((20, 0, 4, 4))
-                                   .convert_alpha()),
-                   pos=(100, 200))
+sheet = CharSheet.from_dict(sheet)
+player = Character(sheet=sheet)
 cam = Camera(400, (width, height), parent=player, center=True)
 objects = [opened_map, player]
+
+# UI #
+canvas = Canvas(cam=cam)
+
+ch_info_size = (400, 500)
+ch_info = pygame.Surface(ch_info_size, pygame.SRCALPHA)
+pygame.draw.rect(ch_info, (0, 0, 0, 127), (0, 0, *ch_info.get_size()))
+
+ch_info = UiRenderer(ch_info, pos=(5, -5), relpos=(0, 1), pivot=(0, 1), parent=canvas)
+icon_block = UiElement(parent=ch_info, size=(80, 80))
+name_block = UiElement(parent=ch_info, pos=(80, 0), size=(ch_info_size[0]-icon_block.size.x, 80))
+
+ui = [
+    ch_info,
+    UiRenderer(player.sprite.src, tex=player.sprite.tex, pos=(10, 10),
+               pivot=(0, 0), parent=icon_block, relpos=(0, 0), size=(60, 60)),
+    UiTextRenderer(player.name, font=fonts["ChInfo.H1"], fore=(255, 255, 255), back=(0, 0, 0, 0), parent=name_block,
+                   pos=(5, 2), relpos=(0, 0.5), pivot=(0, 1)),
+    UiTextRenderer(player.sheet.title, font=fonts["ChInfo.H2"], fore=(255, 255, 255), back=(0, 0, 0, 0), parent=name_block,
+                   pos=(5, 0), relpos=(0, 0.5), pivot=(0, 0)),
+    UiTextRenderer(f"LVL {player.sheet.level}", font=fonts["ChInfo.H2"], fore=(255, 255, 255), back=(0, 0, 0, 0), parent=name_block,
+                   pos=(-10, 0), relpos=(1, 0.5), pivot=(1, 1)),
+    UiTextRenderer(player.sheet.race, font=fonts["ChInfo.H2"], fore=(255, 255, 255), back=(0, 0, 0, 0), parent=name_block,
+                   pos=(-10, 0), relpos=(1, 0.5), pivot=(1, 0)),
+]
 
 #############
 # Main Loop #
@@ -133,8 +158,7 @@ try:
         ##################
         # Network update #
         ##################
-        evnts = sel.select(timeout=-1)
-        for k, m in evnts:
+        for k, m in sel.select(timeout=-1):
             try:
                 pass
             except SocketClosed:
@@ -151,9 +175,8 @@ try:
             match event.type:
                 case pygame.QUIT:
                     hui = False
-                case pygame.MOUSEBUTTONDOWN:
-                    if event.button == 1:
-                        ...
+                case pygame.MOUSEWHEEL:
+                    cam.width = max(min(cam.width / (ZOOM_FACTOR ** event.y), MAX_W), MIN_W)
                 case pygame.KEYDOWN:
                     match event.key:
                         case pygame.K_F1:
@@ -171,11 +194,17 @@ try:
                             cam.width = max(cam.width / ZOOM_FACTOR, MIN_W)
                         case pygame.K_q:
                             cam.width = min(cam.width * ZOOM_FACTOR, MAX_W)
+                        case pygame.K_COMMA:
+                            if ROOT:
+                                SPEED -= 0.25
+                        case pygame.K_PERIOD:
+                            if ROOT:
+                                SPEED += 0.25
                 case pygame.VIDEORESIZE:
-                    glViewport(0, 0, event.w, event.h)
+                    GL.glViewport(0, 0, event.w, event.h)
                     Utils.update_debug_info(size=(event.w, event.h))
-                    cam.recalculate_zoom()
                     cam.size = Vec2(event.w, event.h)
+                    cam.width = cam.width
                     width, height = cam.size.tuple
                 case pygame.MOUSEMOTION:
                     mouse_pos = Vec2.from_tuple(pygame.mouse.get_pos())
@@ -186,27 +215,27 @@ try:
         keys = pygame.key.get_pressed()
 
         if keys[pygame.K_w]:
-            offset.y -= SPEED
+            offset.y -= 1
         if keys[pygame.K_s]:
-            offset.y += SPEED
+            offset.y += 1
         if keys[pygame.K_a]:
-            offset.x -= SPEED
+            offset.x -= 1
         if keys[pygame.K_d]:
-            offset.x += SPEED
+            offset.x += 1
 
         ####################
         # Physics Handling #
         ####################
-        player.pos += offset.normalize() * dt * expected_fps / 1000
+        player.pos += offset.normalize() * SPEED * dt * expected_fps / 1000
         offset = Vec2()
 
         ###########
         # Drawing #
         ###########
-        glClear(GL_COLOR_BUFFER_BIT)
+        GL.glClear(GL.GL_COLOR_BUFFER_BIT)
         GLUtils.set_size_center(cam.width, height / width * cam.width)
-        glLoadIdentity()
-        glTranslatef(-cam.global_pos.x, -cam.global_pos.y, 0)
+        GL.glLoadIdentity()
+        GL.glTranslatef(-cam.global_pos.x, -cam.global_pos.y, 0)
 
         # Signal processing #
         if signals:
@@ -219,16 +248,31 @@ try:
         ############
         #    UI    #
         ############
+        # Reset Pos #
+        GL.glMatrixMode(GL.GL_PROJECTION)
+        GL.glPushMatrix()
+        GL.glLoadIdentity()
+        GLU.gluOrtho2D(0, width, height, 0)
+        GL.glMatrixMode(GL.GL_MODELVIEW)
+        GL.glPushMatrix()
+        GL.glLoadIdentity()
+
+        cam.render(ui)
+        GLUtils.draw_queue()
+
         # Controls #
         if controls:
             Utils.debug('Controls:', 1)
             Utils.debug('Movement: W A S D; Zoom: Q E', 1)
             Utils.debug('Toggle: Controls: F1, FPS lock cycle: F2, Debug: F3', 1)
             Utils.debug('Clear max_dt: ]', 1)
+            if ROOT:
+                Utils.debug('Root:', 1)
+                Utils.debug('Speed: < >', 1)
         # Debug #
         Utils.debug(f'FPS: {float(fps):.1f}, lock: {['NONE', 'VSYNC', 'MANUAL'][vsync]}')
         Utils.debug(f'dt: {dt}, Max dt: {dt_spike}')
-        Utils.debug(f'Connected to: {ip}:{port} as {creds.split("+")[0]}')
+        Utils.debug(f'Connected to: {ip}:{port} as {creds.split("+")[0]}, {ROOT=}')
         if debug:
             Utils.debug(f'Cam: P: {cam.pos.int_tuple}/{cam.global_pos.int_tuple}, Zm: {cam.zoom:.3g}, W: '
                         f'{float(cam.width):.6g}')
@@ -238,23 +282,13 @@ try:
             Utils.debug(f'Player: {player.pos.int_tuple}')
             Utils.debug(f'Signals: {signal_debug_string}')
 
-        #############
         # Render UI #
-        #############
-        glMatrixMode(GL_PROJECTION)
-        glPushMatrix()
-        glLoadIdentity()
-        gluOrtho2D(0, width, height, 0)
-        glMatrixMode(GL_MODELVIEW)
-        glPushMatrix()
-        glLoadIdentity()
-
         Utils.draw_debug()
 
-        glMatrixMode(GL_PROJECTION)
-        glPopMatrix()
-        glMatrixMode(GL_MODELVIEW)
-        glPopMatrix()
+        GL.glMatrixMode(GL.GL_PROJECTION)
+        GL.glPopMatrix()
+        GL.glMatrixMode(GL.GL_MODELVIEW)
+        GL.glPopMatrix()
         ################
         # End of frame #
         ################

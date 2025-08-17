@@ -2,6 +2,7 @@ import io
 import json
 import os
 from math import ceil
+import logging
 
 import pygame
 from OpenGL.GL import glDeleteTextures
@@ -81,25 +82,27 @@ class Chunk(Obj):
     cached: pygame.Surface
     cached_tex: int | None
     cached_valid: bool = False
+    tile_pos_valid: bool = False
     size: Vec2
     is_empty: bool = True
+    parent: "TileMap"
 
-    def __init__(self, tileset, tile_pos: dict[Tile, list[Vec2] | list[list[Vec2]]],
-                 grid: list[list[Tile | None]], tile_size: int, size: Vec2, pos=None, parent=None):
+    def __init__(self, tileset, grid: list[list[Tile | None]], tile_size: int, size: Vec2, cpos: Vec2, pos,
+                 parent: "TileMap"):
         super().__init__(pos=pos, parent=parent)
+        self.cpos = cpos
         self.set = tileset
         self.tile_size = tile_size
         self.grid = grid
-        self.tile_pos = tile_pos
         self.size = size
         self.cached = pygame.Surface(self.size.tuple, pygame.SRCALPHA)
         self.cached_valid = False
+        self.tile_pos_valid = False
         self.cached_tex = None
-        self.check_empty()
 
     def cache(self):
         self.cached.fill((0, 0, 0, 0))
-        for t in self.set.tiles.values():
+        for t, pos in self.tile_pos.items():
             t.render(self.cached, self.tile_pos[t])
         if self.cached_tex is not None:
             glDeleteTextures([self.cached_tex])
@@ -107,6 +110,8 @@ class Chunk(Obj):
         self.cached_valid = True
 
     def render(self, cam: Camera):
+        if not self.tile_pos_valid:
+            self.update_tile_pos()
         if self.is_empty:
             return
         if self.global_pos > cam.world_down_right:
@@ -128,9 +133,47 @@ class Chunk(Obj):
                     if i:
                         self.is_empty = False
                         break
+                else:
+                    continue
+                break
             elif p:
                 self.is_empty = False
                 break
+
+    def update_tile_pos(self):
+        self.tile_pos = {}
+        cx, cy = self.cpos.tuple
+        cw, ch = ceil(self.parent.size / CHUNK_SIZE).int_tuple
+        for x, col in enumerate(self.grid):
+            for y, cell in enumerate(col):
+                if not cell:
+                    continue
+                if isinstance(cell, DirectionalTile):
+                    if cell not in self.tile_pos:
+                        self.tile_pos[cell] = [[] for _ in range(len(cell.imgs))]
+                    index = 0
+                    if (self.grid[x][y + 1] is cell) if y + 1 < CHUNK_SIZE else (
+                            cy + 1 < ch and self.parent.grid[cx][cy + 1].grid[x][0] is cell):
+                        index += 1
+                    if (self.grid[x - 1][y] is cell) if x > 0 else (
+                            cx > 0 and self.parent.grid[cx - 1][cy].grid[-1][y] is cell):
+                        index += 2
+                    if (self.grid[x][y - 1] is cell) if y > 0 else (
+                            cy > 0 and self.parent.grid[cx][cy - 1].grid[x][-1] is cell):
+                        index += 4
+                    if (self.grid[x + 1][y] is cell) if x + 1 < CHUNK_SIZE else (
+                            cx + 1 < cw and self.parent.grid[cx + 1][cy].grid[0][y] is cell):
+                        index += 8
+                    # bullshit.
+                    # noinspection PyUnresolvedReferences
+                    self.tile_pos[cell][index].append(Vec2(x, y) * self.tile_size)
+                else:
+                    if cell not in self.tile_pos:
+                        self.tile_pos[cell] = []
+                    self.tile_pos[cell].append(Vec2(x, y) * self.tile_size)
+
+        self.check_empty()
+        self.tile_pos_valid = True
 
 
 class TileMap(Obj):
@@ -142,6 +185,7 @@ class TileMap(Obj):
         super().__init__(pos=pos, parent=parent)
         self.set = tileset
         self.tile_size = tile_size
+        self.size = Vec2(width, height)
         self.grid = [[None for _ in range(ceil(height / CHUNK_SIZE))] for _ in range(ceil(width / CHUNK_SIZE))]
         if grid:
             # converting all to Tiles
@@ -156,14 +200,16 @@ class TileMap(Obj):
                         if cell in self.set.tiles:
                             grid[x][y] = self.set.tiles[cell]
                         else:
-                            print("Failed to load tile: not present in tileset")
+                            logging.warning("Failed to load tile: not present in tileset")
+                            grid[x][y] = None
                             continue
                     elif isinstance(cell, int):
                         c = mapping[cell]
                         if c in self.set.tiles:
                             grid[x][y] = self.set.tiles[c]
                         else:
-                            print("Failed to load tile: not present in tileset")
+                            logging.warning("Failed to load tile: not present in tileset")
+                            grid[x][y] = None
                             continue
             # dividing to chunks
             size = Vec2(tile_size * CHUNK_SIZE, tile_size * CHUNK_SIZE)
@@ -173,36 +219,12 @@ class TileMap(Obj):
                 for cx, chunk in enumerate(crow):
                     cgrid: list[list[Tile | None]] = [[None for _ in range(CHUNK_SIZE)] for _ in range(CHUNK_SIZE)]
                     cpos = Vec2(cx * CHUNK_SIZE, cy * CHUNK_SIZE)
+                    mn_y = min(cpos.y + CHUNK_SIZE, height)
+                    for x in range(cpos.x, min(cpos.x + CHUNK_SIZE, width)):
+                        cgrid[x % CHUNK_SIZE][:(mn_y - 1) % CHUNK_SIZE + 1] = grid[x][cpos.y:mn_y]
 
-                    tile_pos = {}
-                    for t in self.set.tiles.values():
-                        tile_pos[t] = []
-                        if isinstance(t, DirectionalTile):
-                            tile_pos[t] = [[] for _ in range(16)]
-
-                    for y in range(cpos.y, min(cpos.y + CHUNK_SIZE, height)):
-                        for x in range(cpos.x, min(cpos.x + CHUNK_SIZE, width)):
-                            lx, ly = x % CHUNK_SIZE, y % CHUNK_SIZE
-                            cgrid[lx][ly] = cell = grid[x][y]
-                            if not cell:
-                                continue
-                            if isinstance(cell, DirectionalTile):
-                                index = 0
-                                if y + 1 < height and grid[x][y + 1] is cell:
-                                    index += 1
-                                if x > 0 and grid[x - 1][y] is cell:
-                                    index += 2
-                                if y > 0 and grid[x][y - 1] is cell:
-                                    index += 4
-                                if x + 1 < width and grid[x + 1][y] is cell:
-                                    index += 8
-                                tile_pos[cell][index].append(Vec2(lx * tile_size, ly * tile_size))
-                            else:
-                                # noinspection PyTypeChecker
-                                tile_pos[cell].append(Vec2(lx * tile_size, ly * tile_size))
-
-                    self.grid[cx][cy] = Chunk(tileset, tile_pos, cgrid, tile_size, size, cpos * tile_size, self)
-            print(time.time()-start)
+                    self.grid[cx][cy] = Chunk(tileset, cgrid, tile_size, size, Vec2(cx, cy), cpos * tile_size, self)
+            logging.debug(time.time() - start)
 
     @classmethod
     def from_image(cls, img: io.BytesIO, tileset, mapping: dict[int, str], tile_size: int = 16, *, pos=None,
@@ -217,12 +239,12 @@ class TileMap(Obj):
     def render(self, cam: Camera):
         chunk_width = self.grid[0][0].size.x
         tl_chunk = ceil((cam.world_up_left - self.global_pos) // chunk_width)
-        rd_chunk = ceil(tl_chunk + ceil(cam.world_size / chunk_width))+1
+        rd_chunk = ceil(tl_chunk + ceil(cam.world_size / chunk_width)) + 1
         for col in self.grid[max(tl_chunk.x, 0):min(rd_chunk.x, len(self.grid))]:
             for chunk in col[max(tl_chunk.y, 0):min(rd_chunk.y, len(col))]:
                 chunk.render(cam)
-        tl_chunk = tl_chunk-2
-        rd_chunk = rd_chunk+2
+        tl_chunk = tl_chunk - 2
+        rd_chunk = rd_chunk + 2
         for col in self.grid[max(tl_chunk.x, 0):min(rd_chunk.x, len(self.grid))]:
             for chunk in col[max(tl_chunk.y, 0):min(rd_chunk.y, len(col))]:
                 if chunk.is_empty:

@@ -30,9 +30,12 @@ def recv(sel, sock, data, *args, **kwargs):
 def send(sel, sock, data, msg: bytes, *args, send_all: bool = False, **kwargs):
     try:
         if send_all:
+            state = sock.getblocking()
+            sock.setblocking(True)
             sent = 0
             while sent < len(msg):
                 sent += sock.send(msg[sent:], *args, **kwargs)
+            sock.setblocking(state)
         else:
             return sock.send(msg, *args, **kwargs)
     except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):

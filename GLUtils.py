@@ -1,68 +1,65 @@
 import pygame
-from OpenGL.GL import *
-from OpenGL.GLU import *
+from OpenGL import GL, GLU
 
 
 def surface_to_texture(surface):
     """Convert pygame.Surface to OpenGL texture"""
-    # wtf is wrong with inspection
-    # noinspection PyTypeChecker
     texture_data = pygame.image.tostring(surface, "RGBA")
     w, h = surface.get_size()
 
-    texture = glGenTextures(1)
-    glBindTexture(GL_TEXTURE_2D, texture)
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0,
-                 GL_RGBA, GL_UNSIGNED_BYTE, texture_data)
+    texture = GL.glGenTextures(1)
+    GL.glBindTexture(GL.GL_TEXTURE_2D, texture)
+    GL.glTexImage2D(GL.GL_TEXTURE_2D, 0, GL.GL_RGBA, w, h, 0,
+                    GL.GL_RGBA, GL.GL_UNSIGNED_BYTE, texture_data)
 
     # Set texture parameters
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
+    GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR)
+    GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NEAREST)
 
     return texture
 
 
 def draw_quad(x, y, width, height, texture):
     """Draw 2D quad with texture at specified position"""
-    glEnable(GL_TEXTURE_2D)
-    glBindTexture(GL_TEXTURE_2D, texture)
+    GL.glEnable(GL.GL_TEXTURE_2D)
+    GL.glBindTexture(GL.GL_TEXTURE_2D, texture)
 
-    glEnable(GL_BLEND)
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-    glBegin(GL_QUADS)
-    glTexCoord2f(0, 0)
-    glVertex2f(x, y)
-    glTexCoord2f(1, 0)
-    glVertex2f(x + width, y)
-    glTexCoord2f(1, 1)
-    glVertex2f(x + width, y + height)
-    glTexCoord2f(0, 1)
-    glVertex2f(x, y + height)
-    glEnd()
+    GL.glEnable(GL.GL_BLEND)
+    GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
+    GL.glBegin(GL.GL_QUADS)
+    GL.glTexCoord2f(0, 0)
+    GL.glVertex2f(x, y)
+    GL.glTexCoord2f(1, 0)
+    GL.glVertex2f(x + width, y)
+    GL.glTexCoord2f(1, 1)
+    GL.glVertex2f(x + width, y + height)
+    GL.glTexCoord2f(0, 1)
+    GL.glVertex2f(x, y + height)
+    GL.glEnd()
 
-    glDisable(GL_TEXTURE_2D)
-    glDisable(GL_BLEND)
+    GL.glDisable(GL.GL_TEXTURE_2D)
+    GL.glDisable(GL.GL_BLEND)
 
 
 def batch_draw(texture_list):
     """Draw multiple textures in one batch"""
-    glEnable(GL_TEXTURE_2D)
-    glEnable(GL_BLEND)
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+    GL.glEnable(GL.GL_TEXTURE_2D)
+    GL.glEnable(GL.GL_BLEND)
+    GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
     for x, y, w, h, tex in texture_list:
-        glBindTexture(GL_TEXTURE_2D, tex)
-        glBegin(GL_QUADS)
-        glTexCoord2f(0, 0)
-        glVertex2f(x, y)
-        glTexCoord2f(1, 0)
-        glVertex2f(x + w, y)
-        glTexCoord2f(1, 1)
-        glVertex2f(x + w, y + h)
-        glTexCoord2f(0, 1)
-        glVertex2f(x, y + h)
-        glEnd()
-    glDisable(GL_TEXTURE_2D)
-    glDisable(GL_BLEND)
+        GL.glBindTexture(GL.GL_TEXTURE_2D, tex)
+        GL.glBegin(GL.GL_QUADS)
+        GL.glTexCoord2f(0, 0)
+        GL.glVertex2f(x, y)
+        GL.glTexCoord2f(1, 0)
+        GL.glVertex2f(x + w, y)
+        GL.glTexCoord2f(1, 1)
+        GL.glVertex2f(x + w, y + h)
+        GL.glTexCoord2f(0, 1)
+        GL.glVertex2f(x, y + h)
+        GL.glEnd()
+    GL.glDisable(GL.GL_TEXTURE_2D)
+    GL.glDisable(GL.GL_BLEND)
 
 
 queue = []
@@ -78,7 +75,7 @@ def draw_queue():
 
 
 def set_size_center(w, h):
-    glMatrixMode(GL_PROJECTION)
-    glLoadIdentity()
-    gluOrtho2D(-w / 2, w / 2, h / 2, -h / 2)
-    glMatrixMode(GL_MODELVIEW)
+    GL.glMatrixMode(GL.GL_PROJECTION)
+    GL.glLoadIdentity()
+    GLU.gluOrtho2D(-w / 2, w / 2, h / 2, -h / 2)
+    GL.glMatrixMode(GL.GL_MODELVIEW)

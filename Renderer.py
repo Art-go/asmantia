@@ -11,21 +11,28 @@ class Renderer(Obj):
     tex: int
     size: Vec2
 
-    def __init__(self, img: pygame.Surface, pos=None, *, parent=None, scalable=True):
+    def __init__(self, img: pygame.Surface, pos=None, *, tex=None, parent=None, scalable=True, pivot=(0.5, 0.5), scale=(1, 1)):
         super().__init__(pos=pos, parent=parent)
         self.src = img.convert_alpha()
-        self.tex = GLUtils.surface_to_texture(img)
+        self.tex = tex if tex is not None else GLUtils.surface_to_texture(img)
         self.size = Vec2.from_tuple(self.src.get_size())
         self.scalable = scalable
+        self.pivot = pivot
+        self.scale = scale
 
-    def render(self, cam: "Camera.Camera"):
+    def render(self, cam):
+        """
+        :type cam: Camera.Camera
+        """
         pos = self.global_pos
         size = self.size if self.scalable else self.size / cam.zoom
-        pos -= size / 2
+        size *= self.scale
+        pos -= size * self.pivot
         GLUtils.queue_draw(pos.x, pos.y, size.x, size.y, self.tex)
 
 
 class TextRenderer(Renderer):
-    def __init__(self, text: str, font: pygame.font.Font, fore: tuple, back: tuple, pos=None,
-                 *, parent=None, scalable=True):
-        super().__init__(Utils.prerender_text(text, font, fore, back)[0], pos, parent=parent, scalable=scalable)
+    def __init__(self, text: str, font: pygame.font.Font, fore: tuple, back: tuple,
+                 pos=None, *, parent=None, scalable=True, pivot=(0.5, 0.5), scale=(1, 1)):
+        text = Utils.prerender_text(text, font, fore, back)
+        super().__init__(text[0], pos=pos, tex=text[1], parent=parent, scalable=scalable, pivot=pivot, scale=scale)

@@ -1,5 +1,7 @@
+import gzip
 import json
 import logging
+import os
 import selectors
 import signal
 import socket
@@ -9,22 +11,21 @@ import types
 import pygame
 
 import Network
-from Network import send, recv, close_connection, SocketClosed, Status
+from Character import CharSheet
 
 ################################
 # Constants and Read-only(ish) #
 ################################
 # Server config #
-IP = "127.0.0.1"
-PORT = 8080
-SERVER_CAPACITY = 6
+with open("server.cfg.json", "r") as f:
+    config: dict = json.load(f)
+# Config Loading #
+IP = config.get("ip", "127.0.0.1")
+PORT = config.get("port", 8080)
+SERVER_CAPACITY = config.get("capacity", 2)
 
-CRED_CIPHER = b"%$?_.$/3.@/?1>$>--^ ^-%_>_4=|9/."
 with open("Data/credentials.json", "r") as f:
     all_creds: dict[str, dict] = json.load(f)
-
-# Game constants #
-SPEED = 0.25
 
 # Logging #
 logging.basicConfig(level=logging.DEBUG,
@@ -37,11 +38,15 @@ logging.basicConfig(level=logging.DEBUG,
 #############
 clock = pygame.time.Clock()
 
+characters = {}
+for filename in os.listdir("Data/Char Sheets"):
+    with open(os.path.join("Data/Char Sheets", filename), 'r') as f:
+        ch_sheet = CharSheet.from_json(f.read(), True)
+        characters[ch_sheet.ID]=ch_sheet
+
 ###############
 # Scene Setup #
 ###############
-
-objects = []
 
 ##########
 # Server #
@@ -55,28 +60,24 @@ def accept_connection(key):
     conn, addr = key.fileobj.accept()
     logging.info(f"Connecting...: {addr}")
     conn.setblocking(False)
-    data = types.SimpleNamespace(addr=addr, inb=b"", outb=b"", status=Status.PENDING, info=None)
+    data = types.SimpleNamespace(addr=addr, inb=b"", outb=b"", status=Network.Status.PENDING, info=None)
     events = selectors.EVENT_READ
     sel.register(conn, events, data=data)
-    send(sel, conn, data, b"ASMANTIA SERVER: PENDING FOR CRED", send_all=True)
+    Network.send(sel, conn, data, b"ASMANTIA SERVER: PENDING FOR CRED", send_all=True)
 
 
 def finish_connection(key):
     data = key.data
-    info = all_creds.get(
-        bytes(
-            [b ^ CRED_CIPHER[i % len(CRED_CIPHER)]
-             for i, b in enumerate(recv(sel, key.fileobj, data, 1024))]
-        ).decode(), None
-    )
+    info = all_creds.get(Network.recv(sel, key.fileobj, data, 1024).decode(), None)
     if not info:
-        send(sel, key.fileobj, data, b"REJECT", send_all=True)
-        Network.close_connection(sel, socket)
+        Network.send(sel, key.fileobj, data, b"REJECT", send_all=True)
+        Network.close_connection(sel, key.fileobj)
         return
-    send(sel, key.fileobj, data, b"ACCEPT", send_all=True)
+    Network.send(sel, key.fileobj, data, b"ACCEPT", send_all=True)
     logging.info(f"Connection Complete: {data.addr}")
-    send(sel, key.fileobj, data, json.dumps(info).encode(), send_all=True)
-    data.status = Status.CONNECTED
+    Network.send(sel, key.fileobj, data, json.dumps(info).encode(), send_all=True)
+    data.outb += gzip.compress(characters[info["sheet"]].to_json().encode())
+    data.status = Network.Status.CONNECTED
     sel.modify(key.fileobj, selectors.EVENT_READ | selectors.EVENT_WRITE, data=data)
 
 
@@ -84,17 +85,17 @@ def handle_conn(key, mask):
     sock = key.fileobj
     data = key.data
     if mask & selectors.EVENT_READ:
-        recv_data = recv(sel, sock, data, 1024)
+        recv_data = Network.recv(sel, sock, data, 1024)
         if recv_data:
             logging.info(f"Receiving {recv_data!r} from {data.addr}")
             data.outb += recv_data
         else:
             logging.info(f"Closing connection: {data.addr}")
-            close_connection(sel, sock, addr=data.addr)
+            Network.close_connection(sel, sock, addr=data.addr)
     if mask & selectors.EVENT_WRITE:
         if data.outb:
             logging.info(f"Sending {data.outb!r} to {data.addr}")
-            sent = send(sel, sock, data, data.outb)
+            sent = Network.send(sel, sock, data, data.outb)
             data.outb = data.outb[sent:]
 
 
@@ -120,13 +121,13 @@ try:
             try:
                 if k.data is None:
                     accept_connection(k)
-                elif k.data.status is Status.PENDING:
+                elif k.data.status is Network.Status.PENDING:
                     finish_connection(k)
-                elif k.data.status is Status.CONNECTED:
+                elif k.data.status is Network.Status.CONNECTED:
                     handle_conn(k, m)
                 else:
                     logging.warning(f"Unknown Status: {k.data.status}")
-            except SocketClosed:
+            except Network.SocketClosed:
                 logging.warning("Socket closed abruptly")
 
         dt = clock.tick(60)

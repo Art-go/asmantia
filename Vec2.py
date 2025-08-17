@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from math import floor, ceil, sqrt
 
 
+# noinspection PyTypeHints
 @dataclass
 class Vec2:
     x: int | float = 0
@@ -41,25 +42,31 @@ class Vec2:
         else:
             raise TypeError(f"Can't sub {type(other)} from {type(self)}")
 
-    def __mul__(self, other: int | float | Vec2):
+    def __mul__(self, other: int | tuple | float | Vec2):
         if isinstance(other, Vec2):
             return Vec2(x=self.x * other.x, y=self.y * other.y)
+        elif isinstance(other, tuple):
+            return Vec2(x=self.x * other[0], y=self.y * other[1])
         elif isinstance(other, (int, float)):
             return Vec2(x=self.x * other, y=self.y * other)
         else:
             raise TypeError(f"Can't multiply {type(self)} by {type(other)}")
 
-    def __truediv__(self, other: int | float | Vec2):
+    def __truediv__(self, other: tuple | int | float | Vec2):
         if isinstance(other, Vec2):
             return Vec2(x=self.x / other.x, y=self.y / other.y)
+        elif isinstance(other, tuple):
+            return Vec2(x=self.x / other[0], y=self.y / other[1])
         elif isinstance(other, (int, float)):
             return Vec2(x=self.x / other, y=self.y / other)
         else:
             raise TypeError(f"Can't divide {type(self)} by {type(other)}")
 
-    def __floordiv__(self, other: int | float | Vec2):
+    def __floordiv__(self, other: int | tuple | float | Vec2):
         if isinstance(other, Vec2):
             return Vec2(x=self.x // other.x, y=self.y // other.y)
+        elif isinstance(other, tuple):
+            return Vec2(x=self.x // other[0], y=self.y // other[1])
         elif isinstance(other, (int, float)):
             return Vec2(x=self.x // other, y=self.y // other)
         else:

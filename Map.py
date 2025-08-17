@@ -3,7 +3,7 @@ import json
 import os
 
 from Object import Obj
-from Tileset import TileMap, Tileset
+from Tilemap import TileMap, Tileset
 
 
 class Map(Obj):

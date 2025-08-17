@@ -60,7 +60,7 @@ def debug(text: str, p: int = 0):
     assert (isinstance(debug_font, pygame.font.Font))
     assert (isinstance(debug_screen, pygame.Surface))
     pos = {debug_pos[p][0]: (debug_pos[p][1] + debug_offset[p]).tuple}
-    surf, tex = prerender_text(text, debug_font)
+    surf, tex = prerender_text(text, debug_font, back=(0, 0, 0, 127))
     text_rect: pygame.Rect = surf.get_rect(**pos)
     debug_queue.append((text_rect.x, text_rect.y, text_rect.width, text_rect.height, tex))
     debug_offset[p].y += text_rect.height

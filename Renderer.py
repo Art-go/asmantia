@@ -14,7 +14,7 @@ class Renderer(Obj):
     def __init__(self, img: pygame.Surface, pos=None, *, tex=None, parent=None, scalable=True, pivot=(0.5, 0.5), scale=(1, 1)):
         super().__init__(pos=pos, parent=parent)
         self.src = img.convert_alpha()
-        self.tex = tex if tex is not None else GLUtils.surface_to_texture(img)
+        self.tex = tex if tex is not None else GLUtils.surface_to_texture(self.src)
         self.size = Vec2.from_tuple(self.src.get_size())
         self.scalable = scalable
         self.pivot = pivot
@@ -34,5 +34,21 @@ class Renderer(Obj):
 class TextRenderer(Renderer):
     def __init__(self, text: str, font: pygame.font.Font, fore: tuple, back: tuple,
                  pos=None, *, parent=None, scalable=True, pivot=(0.5, 0.5), scale=(1, 1)):
+        self.font = font
+        self.fore = fore
+        self.back = back
+        self._text = text
         text = Utils.prerender_text(text, font, fore, back)
         super().__init__(text[0], pos=pos, tex=text[1], parent=parent, scalable=scalable, pivot=pivot, scale=scale)
+
+    @property
+    def text(self):
+        return self._text
+
+    @text.setter
+    def text(self, text):
+        self._text = text
+        text = Utils.prerender_text(text, self.font, self.fore, self.back)
+        self.src = text[0]
+        self.tex = text[1]
+

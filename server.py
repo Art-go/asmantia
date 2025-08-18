@@ -87,14 +87,14 @@ def handle_conn(key, mask):
     if mask & selectors.EVENT_READ:
         recv_data = Network.recv(sel, sock, data, 1024)
         if recv_data:
-            logging.info(f"Receiving {recv_data!r} from {data.addr}")
+            logging.debug(f"Receiving {recv_data!r} from {data.addr}")
             data.outb += recv_data
         else:
             logging.info(f"Closing connection: {data.addr}")
             Network.close_connection(sel, sock, addr=data.addr)
     if mask & selectors.EVENT_WRITE:
         if data.outb:
-            logging.info(f"Sending {data.outb!r} to {data.addr}")
+            logging.debug(f"Sending {data.outb!r} to {data.addr}")
             sent = Network.send(sel, sock, data, data.outb)
             data.outb = data.outb[sent:]
 

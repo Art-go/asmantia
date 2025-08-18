@@ -10,7 +10,7 @@ class Obj:
     def __init__(self, pos: Vec2 | tuple = None, parent: Obj = None):
         if isinstance(pos, Vec2):
             self.pos = pos
-        elif isinstance(pos, tuple):
+        elif hasattr(pos, '__len__') and len(pos)==2:
             self.pos = Vec2.from_tuple(pos)
         elif pos is None:
             self.pos = Vec2()

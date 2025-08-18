@@ -3,7 +3,6 @@ from OpenGL import GL, GLU
 
 
 def surface_to_texture(surface):
-    """Convert pygame.Surface to OpenGL texture"""
     texture_data = pygame.image.tostring(surface, "RGBA")
     w, h = surface.get_size()
 
@@ -20,7 +19,6 @@ def surface_to_texture(surface):
 
 
 def draw_quad(x, y, width, height, texture):
-    """Draw 2D quad with texture at specified position"""
     GL.glEnable(GL.GL_TEXTURE_2D)
     GL.glBindTexture(GL.GL_TEXTURE_2D, texture)
 
@@ -42,7 +40,6 @@ def draw_quad(x, y, width, height, texture):
 
 
 def batch_draw(texture_list):
-    """Draw multiple textures in one batch"""
     GL.glEnable(GL.GL_TEXTURE_2D)
     GL.glEnable(GL.GL_BLEND)
     GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)

@@ -4,6 +4,7 @@ import os
 
 from Object import Obj
 from Tilemap import TileMap, Tileset
+from Vec2 import Vec2
 
 
 class Map(Obj):
@@ -17,12 +18,12 @@ class Map(Obj):
     def from_folder(cls, folder: str | os.PathLike, tileset: Tileset, *, parent=None):
         with open(folder + "/info.json") as f:
             info: dict = json.load(f)
-        maps = []
+        mp = cls([], pos=-Vec2.from_tuple(info.get("offset", (0, 0))), parent=parent)
         info["mapping"] = {int(k): v for k, v in info["mapping"].items()}
         for m in info["layers"]:
             with open(f"{folder}/{info["name"]}_{m}.png", "rb") as f:
-                maps.append(TileMap.from_image(io.BytesIO(f.read()), tileset, info["mapping"]))
-        return cls(maps, pos=info.get("pos", None), parent=parent)
+                mp.maps.append(TileMap.from_image(io.BytesIO(f.read()), tileset, info["mapping"], parent=mp))
+        return mp
 
     @classmethod
     def from_folder_server(cls, folder: str | os.PathLike):

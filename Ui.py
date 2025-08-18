@@ -1,9 +1,8 @@
 import pygame
 
 import Camera
-import Utils
 from Object import Obj
-from Renderer import Renderer
+from Renderer import Renderer, TextRenderer
 from Vec2 import Vec2, zero
 
 
@@ -38,13 +37,36 @@ class UiElement(Obj):
 
 
 class UiRenderer(UiElement, Renderer):
-    def __init__(self, img, relpos: tuple | Vec2, parent: "Canvas | UiElement", size: tuple | Vec2 = (0, 0),
+    def __init__(self, img, parent: "Canvas | UiElement", relpos: tuple | Vec2 = (0, 0), size: tuple | Vec2 = (0, 0),
                  **kwargs):
         super().__init__(img=img, size=size, relpos=relpos, parent=parent, **kwargs)
 
 
-class UiTextRenderer(UiRenderer):
-    def __init__(self, text: str, font: pygame.font.Font, fore: tuple, back: tuple, pos: Vec2 | tuple,
-                 parent: Canvas | UiElement, relpos: tuple | Vec2, **kwargs):
-        text = Utils.prerender_text(text, font, fore, back)
-        super().__init__(text[0], tex=text[1], parent=parent, relpos=relpos, pos=pos, **kwargs)
+class UiTextRenderer(UiElement, TextRenderer):
+    def __init__(self, text: str, font: pygame.font.Font, fore: tuple, back: tuple, parent: Canvas | UiElement, **kwargs):
+        super().__init__(parent=parent, text=text, font=font, fore=fore, back=back, **kwargs)
+
+
+class UiProgressBar(UiElement):
+    def __init__(self, img_back, img_bar, parent, progress: float = 0, pos=(0, 0), size=(100, 10), relpos=(0, 0),
+                 pivot=(0, 0), *, tex_back=None, tex_bar=None):
+        super().__init__(parent=parent, pos=pos, size=size, relpos=relpos, pivot=pivot)
+        self._progress = 0
+        self.back = UiRenderer(img=img_back, tex=tex_back, size=size, parent=self)
+        self.bar = UiRenderer(img=img_bar, tex=tex_bar, size=size, parent=self)
+        self.progress=progress
+
+    def render(self, *args, **kwargs):
+        self.back.render(*args, **kwargs)
+        self.bar.render(*args, **kwargs)
+
+    @property
+    def progress(self):
+        return self._progress
+
+    @progress.setter
+    def progress(self, progress):
+        self._progress=progress
+        s: Vec2 = self.size.copy()
+        s.x = s.x * self._progress
+        self.bar.size = s

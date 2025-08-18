@@ -112,6 +112,9 @@ class Vec2:
     def len(self):
         return sqrt(self.x ** 2 + self.y ** 2)
 
+    def copy(self):
+        return Vec2(x=self.x, y=self.y)
+
 
 zero = Vec2(0, 0)
 one = Vec2(1, 1)

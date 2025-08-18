@@ -30,5 +30,6 @@
     "55": "Trees in Bushes",
     "56": "Bushes in Trees"
   },
-  "layers": ["Terrain", "Paths", "Objects"]
+  "layers": ["Terrain", "Paths", "Objects"],
+  "offset": [1000, 1000]
 }

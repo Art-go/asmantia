@@ -1,4 +1,3 @@
-import gzip
 import json
 import logging
 import os
@@ -22,7 +21,9 @@ with open("server.cfg.json", "r") as f:
 # Config Loading #
 IP = config.get("ip", "127.0.0.1")
 PORT = config.get("port", 8080)
+SERVER_NAME = config.get("name", "Unnamed server, idk, probably unsafe or smth, would be a good idea to contact admin")
 SERVER_CAPACITY = config.get("capacity", 2)
+TICKRATE = config.get("tickrate", 60)
 
 with open("Data/credentials.json", "r") as f:
     all_creds: dict[str, dict] = json.load(f)
@@ -42,7 +43,7 @@ characters = {}
 for filename in os.listdir("Data/Char Sheets"):
     with open(os.path.join("Data/Char Sheets", filename), 'r') as f:
         ch_sheet = CharSheet.from_json(f.read(), True)
-        characters[ch_sheet.ID]=ch_sheet
+        characters[ch_sheet.ID] = ch_sheet
 
 ###############
 # Scene Setup #
@@ -61,41 +62,78 @@ def accept_connection(key):
     logging.info(f"Connecting...: {addr}")
     conn.setblocking(False)
     data = types.SimpleNamespace(addr=addr, inb=b"", outb=b"", status=Network.Status.PENDING, info=None)
-    events = selectors.EVENT_READ
-    sel.register(conn, events, data=data)
-    Network.send(sel, conn, data, b"ASMANTIA SERVER: PENDING FOR CRED", send_all=True)
+    sel.register(conn, selectors.EVENT_READ, data=data)
+    packet = Network.prepare_packet(json.dumps(
+        {
+            "name": SERVER_NAME,
+            "tickrate": TICKRATE,
+        }
+    ).encode(), Network.PacketType.INTRODUCTION)
+    Network.send_raw(conn, data, packet, sel, send_all=True)
 
 
-def finish_connection(key):
+def finish_connection(key, creds):
     data = key.data
-    info = all_creds.get(Network.recv(sel, key.fileobj, data, 1024).decode(), None)
+    info = all_creds.get(creds, None)
     if not info:
-        Network.send(sel, key.fileobj, data, b"REJECT", send_all=True)
-        Network.close_connection(sel, key.fileobj)
+        Network.send_raw(key.fileobj, data, b"REJECT", sel, send_all=True)
+        logging.info(f"Connection Rejected: {data.addr}: Wrong Creds")
+        Network.close_connection(sel, key.fileobj, data.addr)
         return
-    Network.send(sel, key.fileobj, data, b"ACCEPT", send_all=True)
+
     logging.info(f"Connection Complete: {data.addr}")
-    Network.send(sel, key.fileobj, data, json.dumps(info).encode(), send_all=True)
-    data.outb += gzip.compress(characters[info["sheet"]].to_json().encode())
+
+    data.outb += Network.prepare_packet(json.dumps(info).encode(), Network.PacketType.ACCEPT)
+    data.outb += Network.prepare_packet(characters[info["sheet"]].to_json().encode(), Network.PacketType.UPDATE)
+    # TODO: make it(^) more than just receiving sheet
+
     data.status = Network.Status.CONNECTED
     sel.modify(key.fileobj, selectors.EVENT_READ | selectors.EVENT_WRITE, data=data)
+
+
+def handle_packet(pck, dta, expected_ptype: Network.PacketType):
+    if isinstance(pck[0], Network.SoftError):
+        if pck[0] == Network.SoftError.PACKET_NOT_READY:
+            logging.warn(f"Received partial packet from {dta.addr}: {pck}")
+            return 0.5
+        logging.error(f"Something gone wrong: {pck}")
+        return False
+    if pck[0] != expected_ptype:
+        logging.error(f"Wrong ptype: {pck}, expected {expected_ptype}")
+        return False
+    dta.inb = dta.inb[pck[2]:]
+    return True
 
 
 def handle_conn(key, mask):
     sock = key.fileobj
     data = key.data
     if mask & selectors.EVENT_READ:
-        recv_data = Network.recv(sel, sock, data, 1024)
+        recv_data = Network.recv_raw(sock, data, sel)
         if recv_data:
             logging.debug(f"Receiving {recv_data!r} from {data.addr}")
-            data.outb += recv_data
+            data.inb += recv_data
+            match data.status:
+                case Network.Status.PENDING:
+                    packet = Network.recv_packet(data.inb)
+                    res = handle_packet(packet, data, Network.PacketType.INTRODUCTION_REPLY)
+                    if res==0.5:
+                        return
+                    if res==False:
+                        logging.info(f"Disconnected: {data.addr}")
+                        logging.info(f"Closing connection: {data.addr}")
+                        Network.close_connection(sel, sock, addr=data.addr)
+                        return
+                    finish_connection(key, packet[1].decode())
         else:
+            logging.info(f"Disconnected: {data.addr}")
             logging.info(f"Closing connection: {data.addr}")
             Network.close_connection(sel, sock, addr=data.addr)
+            return
     if mask & selectors.EVENT_WRITE:
         if data.outb:
             logging.debug(f"Sending {data.outb!r} to {data.addr}")
-            sent = Network.send(sel, sock, data, data.outb)
+            sent = Network.send_raw(sock, data, data.outb, sel)
             data.outb = data.outb[sent:]
 
 
@@ -116,21 +154,17 @@ try:
     listening.setblocking(False)
     sel.register(listening, selectors.EVENT_READ, data=None)
     while hui:
-        evnts = sel.select(timeout=-1)
-        for k, m in evnts:
+        events = sel.select(timeout=-1)
+        for k, m in events:
             try:
                 if k.data is None:
                     accept_connection(k)
-                elif k.data.status is Network.Status.PENDING:
-                    finish_connection(k)
-                elif k.data.status is Network.Status.CONNECTED:
-                    handle_conn(k, m)
-                else:
-                    logging.warning(f"Unknown Status: {k.data.status}")
+                    continue
+                handle_conn(k, m)
             except Network.SocketClosed:
                 logging.warning("Socket closed abruptly")
 
-        dt = clock.tick(60)
+        dt = clock.tick(TICKRATE)
 except Exception as e:
     logging.exception(e)
 finally:

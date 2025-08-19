@@ -1,3 +1,5 @@
+from typing import Iterable
+
 from Object import Obj
 from Vec2 import Vec2
 
@@ -55,7 +57,7 @@ class Camera(Obj):
         """
         return (world_pos - self.global_pos + self.world_size / 2) * self.zoom
 
-    def render(self, to_render: Obj | list[Obj] | tuple[Obj]):
+    def render(self, to_render: Obj | Iterable[Obj]):
         self.update()
         if isinstance(to_render, Obj):
             to_render = (to_render,)

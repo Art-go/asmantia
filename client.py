@@ -1,10 +1,10 @@
+import base64
 import json
 import logging
 import os
 import selectors
 import signal
 import socket
-import sys
 import types
 from getpass import getpass
 
@@ -12,6 +12,7 @@ import pygame
 from OpenGL import GL, GLU
 
 import GLUtils
+from SoftError import SoftError
 import Utils
 from Camera import Camera
 from Character import Character, CharSheet
@@ -20,15 +21,13 @@ import Network
 from Tilemap import Tileset
 from Ui import UiRenderer, Canvas, UiTextRenderer, UiElement, UiProgressBar
 from Vec2 import Vec2
+# noinspection PyUnusedImports
+import logging_setup
 
+########
+# Init #
+########
 pygame.init()
-
-#################
-# Network Setup #
-#################
-ip = input("Enter ip (empty for 127.0.0.1):") or "127.0.0.1"
-port = int(input("Enter port (empty for 8080):") or 8080)
-creds = getpass("Credentials: ") if not os.environ.get("DEBUG", False) else input("DEBUG_CREDS: ")
 
 
 def handle_sigint(_signum, _frame):
@@ -36,43 +35,49 @@ def handle_sigint(_signum, _frame):
     logging.info("KeyboardInterrupt")
     hui = False
 
+
+signal.signal(signal.SIGINT, handle_sigint)
+
+#################
+# Network Setup #
+#################
+ip = input("Enter ip (empty for 127.0.0.1):") or "127.0.0.1"
+port = int(input("Enter port (empty for 8080):") or 8080)
+creds = getpass("Credentials: ") if not os.environ.get("DEBUG", False) else input("DEBUG_CREDS: ")
+private_key = Network.generate_eph_key()
+public_key = private_key.public_key()
+
+
 def handle_packet(pck, dta, expected_ptype: Network.PacketType):
-    if isinstance(pck[0], Network.SoftError):
+    if isinstance(pck[0], SoftError):
         raise ConnectionError(f"Something gone wrong: {pck}")
     if pck[0] != expected_ptype:
         raise ConnectionError(f"Wrong ptype: {pck}, expected {expected_ptype}")
     dta.inb = dta.inb[pck[2]:]
 
 
-signal.signal(signal.SIGINT, handle_sigint)
-
-logging.basicConfig(level=logging.DEBUG,
-                    format="{asctime}:{levelname}:{name}:{message}", style="{",
-                    stream=sys.stdout
-                    )
-
 sock = socket.socket()
 sock.connect((ip, port))
-data = types.SimpleNamespace(addr=(ip, port), outb=b"", inb=b"")
+data = types.SimpleNamespace(addr=(ip, port), outb=b"", inb=b"", aes_key=None, salt=None)
 
 packet = Network.simple_buffered_recv(sock, data)
 handle_packet(packet, data, Network.PacketType.INTRODUCTION)
+server_info: dict = json.loads(packet[1].decode())
+data.salt = base64.b85decode(server_info["salt"])
+data.aes_key = Network.derive_key(private_key, base64.b85decode(server_info["public_key"]), data.salt)
+logging.info(f"AES Key: {data.aes_key}")
 
-server_info = {
-}
-server_info.update(json.loads(packet[1].decode()))
-packet = Network.prepare_packet(creds.encode(), Network.PacketType.INTRODUCTION_REPLY)
-
+packet = Network.prepare_packet(public_key.export_key(format="raw"), Network.PacketType.INTRODUCTION_REPLY)
+packet += Network.prepare_samn(creds.encode(), Network.PacketType.AUTH, aes_key=data.aes_key)
 Network.send_raw(sock, data, packet, send_all=True)
 
-packet = Network.simple_buffered_recv(sock, data)
+packet = Network.simple_buffered_recv(sock, data, data.aes_key)
 handle_packet(packet, data, Network.PacketType.ACCEPT)
-char_info = json.loads(packet[1].decode())
 
-packet = Network.simple_buffered_recv(sock, data)
-handle_packet(packet, data, Network.PacketType.UPDATE)
-sheet = json.loads(packet[1].decode())
-# TODO: make it more than just receiving sheet
+packet = Network.simple_buffered_recv(sock, data, data.aes_key)
+handle_packet(packet, data, Network.PacketType.INITIAL_DATA)
+packet = json.loads(packet[1].decode())
+sheet, char_info = packet["sheet"], packet["info"]
 
 sel = selectors.DefaultSelector()
 sel.register(sock, selectors.EVENT_READ | selectors.EVENT_WRITE)

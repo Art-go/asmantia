@@ -1,0 +1,14 @@
+from enum import IntEnum
+
+
+class SoftError(IntEnum):
+    PACKET_CORRUPTED = 1
+    NON_EXISTENT_PTYPE = 2
+    PACKET_NOT_READY = 3
+    NO_ANSWER = 4
+    BAD_PAYLOAD = 5
+    JSON_DECODING_ERROR = 6
+    UNICODE_DECODE_ERROR = 7
+    ECC_IMPORT_ERROR = 8
+    AES_DERIVATION_ERROR = 9
+    NO_AES_KEY = 10

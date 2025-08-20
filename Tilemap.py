@@ -224,7 +224,7 @@ class TileMap(Obj):
                         cgrid[x % CHUNK_SIZE][:(mn_y - 1) % CHUNK_SIZE + 1] = grid[x][cpos.y:mn_y]
 
                     self.grid[cx][cy] = Chunk(tileset, cgrid, tile_size, size, Vec2(cx, cy), cpos * tile_size, self)
-            logging.debug(time.time() - start)
+            logging.debug(f"time per TileMap: {time.time() - start}")
 
     @classmethod
     def from_image(cls, img: io.BytesIO, tileset, mapping: dict[int, str], tile_size: int = 16, *, pos=None,

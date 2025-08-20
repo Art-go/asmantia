@@ -79,9 +79,12 @@ class CharSheet:
     def from_json(cls, jsons: str, server: bool=False) -> "CharSheet":
         return cls.from_dict(json.loads(jsons), server=server)
 
-    def to_json(self):
+    def to_dict(self):
         dct = asdict(self)
         dct.pop("sprite")
         dct.pop("server")
         dct["pos"] = tuple(dct["pos"].values())
-        return json.dumps(dct)
+        return dct
+
+    def to_json(self):
+        return json.dumps(self.to_dict())

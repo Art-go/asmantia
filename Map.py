@@ -2,9 +2,9 @@ import io
 import json
 import os
 
-from Object import Obj
+from Engine import Obj
 from Tilemap import TileMap, Tileset
-from Vec2 import Vec2
+from Engine import Vec2
 
 
 class Map(Obj):
@@ -24,12 +24,6 @@ class Map(Obj):
             with open(f"{folder}/{info["name"]}_{m}.png", "rb") as f:
                 mp.maps.append(TileMap.from_image(io.BytesIO(f.read()), tileset, info["mapping"], parent=mp))
         return mp
-
-    @classmethod
-    def from_folder_server(cls, folder: str | os.PathLike):
-        with open(folder + "/info.json") as f:
-            info: dict = json.load(f)
-        return info,
 
     def render(self, cam):
         for m in self.maps:

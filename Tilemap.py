@@ -1,26 +1,26 @@
 import io
 import json
+import logging
 import os
 from math import ceil
-import logging
 
 import pygame
 from OpenGL.GL import glDeleteTextures
 from PIL import Image
 
-import GLUtils
-from Camera import Camera
-from Object import Obj
-from Renderer import Renderer
-from Vec2 import Vec2
+from Engine import Camera
+from Engine import GLUtils
+from Engine import Obj
+from Engine import Vec2
 
 CHUNK_SIZE = 32
 
+logger = logging.getLogger(__name__)
 
-class Tile(Renderer):
+class Tile:
 
-    def __init__(self, img: pygame.Surface, *, parent=None):
-        super().__init__(img, parent=parent)
+    def __init__(self, img: pygame.Surface):
+        self.tile = img
 
     # noinspection PyMethodOverriding
     def render(self, surf, pos):
@@ -29,16 +29,15 @@ class Tile(Renderer):
         :type pos: list[Vec2]
         """
         for p in pos:
-            surf.blit(self.src, p.int_tuple)
+            surf.blit(self.tile, p.int_tuple)
 
 
 class DirectionalTile(Tile):
-    imgs: list[pygame.Surface]
+    tile_vars: list[pygame.Surface]
 
     # noinspection PyMissingConstructor
-    def __init__(self, imgs: list[pygame.Surface], *, parent=None):
-        self.parent = parent
-        self.imgs = [i.convert_alpha() for i in imgs]
+    def __init__(self, imgs: list[pygame.Surface]):
+        self.tile_vars = [i.convert_alpha() for i in imgs]
 
     # noinspection PyMethodOverriding
     def render(self, surf, pos):
@@ -48,7 +47,7 @@ class DirectionalTile(Tile):
         """
         for i, tpos in enumerate(pos):
             for p in tpos:
-                surf.blit(self.imgs[i], p.int_tuple)
+                surf.blit(self.tile_vars[i], p.int_tuple)
 
 
 class Tileset:
@@ -123,7 +122,7 @@ class Chunk(Obj):
 
         pos = self.global_pos
         size = self.size
-        GLUtils.queue_draw(pos.x, pos.y, size.x, size.y, self.cached_tex)
+        cam.queue += pos.x, pos.y, size.x, size.y, self.cached_tex
 
     def check_empty(self):
         self.is_empty = True
@@ -150,7 +149,7 @@ class Chunk(Obj):
                     continue
                 if isinstance(cell, DirectionalTile):
                     if cell not in self.tile_pos:
-                        self.tile_pos[cell] = [[] for _ in range(len(cell.imgs))]
+                        self.tile_pos[cell] = [[] for _ in range(len(cell.tile_vars))]
                     index = 0
                     if (self.grid[x][y + 1] is cell) if y + 1 < CHUNK_SIZE else (
                             cy + 1 < ch and self.parent.grid[cx][cy + 1].grid[x][0] is cell):
@@ -200,7 +199,7 @@ class TileMap(Obj):
                         if cell in self.set.tiles:
                             grid[x][y] = self.set.tiles[cell]
                         else:
-                            logging.warning("Failed to load tile: not present in tileset")
+                            logger.warning("Failed to load tile: not present in tileset")
                             grid[x][y] = None
                             continue
                     elif isinstance(cell, int):
@@ -208,7 +207,7 @@ class TileMap(Obj):
                         if c in self.set.tiles:
                             grid[x][y] = self.set.tiles[c]
                         else:
-                            logging.warning("Failed to load tile: not present in tileset")
+                            logger.warning("Failed to load tile: not present in tileset")
                             grid[x][y] = None
                             continue
             # dividing to chunks
@@ -224,7 +223,7 @@ class TileMap(Obj):
                         cgrid[x % CHUNK_SIZE][:(mn_y - 1) % CHUNK_SIZE + 1] = grid[x][cpos.y:mn_y]
 
                     self.grid[cx][cy] = Chunk(tileset, cgrid, tile_size, size, Vec2(cx, cy), cpos * tile_size, self)
-            logging.debug(f"time per TileMap: {time.time() - start}")
+            logger.debug(f"time per TileMap: {time.time() - start}")
 
     @classmethod
     def from_image(cls, img: io.BytesIO, tileset, mapping: dict[int, str], tile_size: int = 16, *, pos=None,

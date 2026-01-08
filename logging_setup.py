@@ -22,13 +22,13 @@ class ColorFormatter(logging.Formatter):
         formatter = logging.Formatter(log_fmt)
         return formatter.format(record)
 
+def setup_logging(level=logging.WARNING):
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.DEBUG)
 
-ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
+    ch.setFormatter(ColorFormatter())
 
-ch.setFormatter(ColorFormatter())
-
-logging.basicConfig(level=logging.DEBUG,
-                    handlers=[ch]
-                    )
-logging.info("Logging initialized")
+    logging.basicConfig(level=level,
+                        handlers=[ch]
+                        )
+    logging.info("Logging initialized")

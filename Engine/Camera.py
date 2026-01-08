@@ -1,7 +1,8 @@
 from typing import Iterable
 
-from Object import Obj
-from Vec2 import Vec2
+from .GLUtils import DrawQueue
+from .object import Obj
+from .vec2 import Vec2
 
 
 class Camera(Obj):
@@ -10,12 +11,24 @@ class Camera(Obj):
     world_up_left: Vec2
     world_down_right: Vec2
     center: bool
+    queue: DrawQueue
 
-    def __init__(self, width: int, size: tuple[int, int], *, pos=None, parent=None, center: bool = False):
+    def __init__(self, width: int, size: tuple[int, int], *, pos: Vec2 | tuple | None = None, parent: Obj = None,
+                 center: bool = False):
+        """
+
+
+        :type width: int
+        :type size: tuple[int, int]
+        :type pos: Vec2 | tuple | None
+        :type parent: Obj
+        :type center: bool
+        """
         super().__init__(pos=pos, parent=parent)
         self.center = center
         self.size = Vec2.from_tuple(size)
         self.width = width
+        self.queue = DrawQueue()
         self.recalculate_zoom()
         self.update()
 
@@ -63,6 +76,7 @@ class Camera(Obj):
             to_render = (to_render,)
         for obj in to_render:
             obj.render(self)
+        self.queue()
 
     def update(self):
         self.world_up_left = self.global_pos - self.world_size / 2

@@ -59,16 +59,22 @@ def batch_draw(texture_list):
     GL.glDisable(GL.GL_BLEND)
 
 
-queue = []
+class DrawQueue:
+    queue: list[tuple[int, int, int, int, int]]  # list[tuple[x, y, width, height, texture]]
 
+    def __init__(self):
+        self.queue = []
 
-def queue_draw(x, y, width, height, texture):
-    queue.append((x, y, width, height, texture))
+    def __iadd__(self, other: tuple[int, int, int, int, int]):
+        self.queue.append(other)
+        return self
 
+    def add(self, x, y, width, height, texture):
+        self.__iadd__((x, y, width, height, texture))
 
-def draw_queue():
-    batch_draw(queue)
-    queue.clear()
+    def __call__(self):
+        batch_draw(self.queue)
+        self.queue.clear()
 
 
 def set_size_center(w, h):

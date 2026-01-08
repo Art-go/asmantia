@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from dataclasses import dataclass
 from math import floor, ceil, sqrt
 
@@ -9,6 +7,13 @@ from math import floor, ceil, sqrt
 class Vec2:
     x: int | float = 0
     y: int | float = 0
+
+    zero = None
+    one = None
+    up = None
+    down = None
+    left = None
+    right = None
 
     @property
     def tuple(self):
@@ -22,7 +27,7 @@ class Vec2:
     def from_tuple(cls, tpl: tuple):
         return cls(tpl[0], tpl[1])
 
-    def __add__(self, other: Vec2 | tuple | (int | float)):
+    def __add__(self, other: "Vec2 | tuple | (int | float)"):
         if isinstance(other, Vec2):
             return Vec2(x=self.x + other.x, y=self.y + other.y)
         elif isinstance(other, tuple):
@@ -32,7 +37,7 @@ class Vec2:
         else:
             raise TypeError(f"Can't add {type(other)} to {type(self)}")
 
-    def __sub__(self, other: Vec2 | tuple | (int | float)):
+    def __sub__(self, other: "Vec2 | tuple | (int | float)"):
         if isinstance(other, Vec2):
             return Vec2(x=self.x - other.x, y=self.y - other.y)
         elif isinstance(other, tuple):
@@ -42,7 +47,7 @@ class Vec2:
         else:
             raise TypeError(f"Can't sub {type(other)} from {type(self)}")
 
-    def __mul__(self, other: int | tuple | float | Vec2):
+    def __mul__(self, other: "int | tuple | float | Vec2"):
         if isinstance(other, Vec2):
             return Vec2(x=self.x * other.x, y=self.y * other.y)
         elif isinstance(other, tuple):
@@ -52,7 +57,7 @@ class Vec2:
         else:
             raise TypeError(f"Can't multiply {type(self)} by {type(other)}")
 
-    def __truediv__(self, other: tuple | int | float | Vec2):
+    def __truediv__(self, other: "tuple | int | float | Vec2"):
         if isinstance(other, Vec2):
             return Vec2(x=self.x / other.x, y=self.y / other.y)
         elif isinstance(other, tuple):
@@ -62,7 +67,7 @@ class Vec2:
         else:
             raise TypeError(f"Can't divide {type(self)} by {type(other)}")
 
-    def __floordiv__(self, other: int | tuple | float | Vec2):
+    def __floordiv__(self, other: "int | tuple | float | Vec2"):
         if isinstance(other, Vec2):
             return Vec2(x=self.x // other.x, y=self.y // other.y)
         elif isinstance(other, tuple):
@@ -81,19 +86,19 @@ class Vec2:
     def __round__(self):
         return Vec2(x=int(self.x), y=int(self.y))
 
-    def __eq__(self, other: Vec2):
+    def __eq__(self, other: "Vec2"):
         return self.x == other.x and self.y == other.y
 
-    def __gt__(self, other: Vec2):
+    def __gt__(self, other: "Vec2"):
         return self.x > other.x or self.y > other.y
 
-    def __lt__(self, other: Vec2):
+    def __lt__(self, other: "Vec2"):
         return self.x < other.x or self.y < other.y
 
-    def __ge__(self, other: Vec2):
+    def __ge__(self, other: "Vec2"):
         return self.x > other.x and self.y > other.y
 
-    def __le__(self, other: Vec2):
+    def __le__(self, other: "Vec2"):
         return self.x < other.x and self.y < other.y
 
     def __neg__(self):
@@ -115,10 +120,10 @@ class Vec2:
     def copy(self):
         return Vec2(x=self.x, y=self.y)
 
-
-zero = Vec2(0, 0)
-one = Vec2(1, 1)
-down = Vec2(0, 1)
-up = Vec2(0, -1)
-left = Vec2(-1, 0)
-right = Vec2(1, 0)
+# init presets
+Vec2.zero = Vec2(0, 0)
+Vec2.one = Vec2(1, 1)
+Vec2.up = Vec2(0, -1)
+Vec2.down = Vec2(0, 1)
+Vec2.left = Vec2(-1, 0)
+Vec2.right = Vec2(1, 0)

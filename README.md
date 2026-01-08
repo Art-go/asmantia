@@ -1,4 +1,15 @@
 # Asmantia
+This is a dnd inspired game, or rather, a tool for me to use during my sessions.
+Originally, i wanted to make it into an online game, so players could connect to server and control their characters,
+but after thinking about it: this is a bit of a big goal, so now i am focusing on porting everything from unity.
+
+Also, it uses my own abstraction layer on top of pygame, which i might turn into a full lib
+
+
+<details>
+<summary>Old Description</summary>
+
+# Asmantia
 This is a simple project of mine, a dnd inspired game, or rather: a client and server part of it
 
 It is very simple to use:
@@ -27,3 +38,6 @@ It is very simple to use:
 
 ## Requirements
 - Python 3.12+
+
+
+</details>

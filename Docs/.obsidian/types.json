@@ -1,0 +1,11 @@
+{
+  "types": {
+    "aliases": "aliases",
+    "cssclasses": "multitext",
+    "tags": "tags",
+    "Status": "text",
+    "id": "number",
+    "linked": "multitext",
+    "linked tasks": "multitext"
+  }
+}

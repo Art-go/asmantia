@@ -1,7 +1,0 @@
-{
-  "ip": "127.0.0.1",
-  "port": 8080,
-  "capacity": 6,
-  "tickrate": 60,
-  "name": "Asmantia Main Server"
-}

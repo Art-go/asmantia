@@ -1,10 +1,12 @@
 import pygame
 
-import GLUtils
-import Utils
-from Object import Obj
-from Vec2 import Vec2
+from .object import Obj
+from .vec2 import Vec2
+from . import GLUtils
+from .TextRenderUtils import TRenderer
+from .camera import Camera
 
+TRender = TRenderer()
 
 class Renderer(Obj):
     src: pygame.Surface
@@ -20,15 +22,12 @@ class Renderer(Obj):
         self.pivot = pivot
         self.scale = scale
 
-    def render(self, cam):
-        """
-        :type cam: Camera.Camera
-        """
+    def render(self, cam: Camera):
         pos = self.global_pos
         size = self.size if self.scalable else self.size / cam.zoom
         size *= self.scale
         pos -= size * self.pivot
-        GLUtils.queue_draw(pos.x, pos.y, size.x, size.y, self.tex)
+        cam.queue += pos.x, pos.y, size.x, size.y, self.tex
 
 
 class TextRenderer(Renderer):
@@ -38,7 +37,7 @@ class TextRenderer(Renderer):
         self.fore = fore
         self.back = back
         self._text = text
-        text = Utils.prerender_text(text, font, fore, back)
+        text = TRender.prerender_text(text, font, fore, back)
         super().__init__(text[0], pos=pos, tex=text[1], parent=parent, scalable=scalable, pivot=pivot, scale=scale)
 
     @property
@@ -48,7 +47,7 @@ class TextRenderer(Renderer):
     @text.setter
     def text(self, text):
         self._text = text
-        text = Utils.prerender_text(text, self.font, self.fore, self.back)
+        text = TRender.prerender_text(text, self.font, self.fore, self.back)
         self.src = text[0]
         self.tex = text[1]
 

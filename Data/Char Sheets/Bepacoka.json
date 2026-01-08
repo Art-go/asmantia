@@ -1,0 +1,14 @@
+{
+  "health": 1,
+  "max_health": 1,
+  "mana": 3,
+  "max_mana": 3,
+  "speed": 9,
+  "level": -323213,
+  "sprite_info": ["Assets/Sprites/Sprites.png", 20, 0, 4, 4],
+  "title": "Nobody",
+  "race": "Nobody",
+  "name": "TEST",
+  "pos": [300, 300],
+  "ID": "Bepacoka"
+}

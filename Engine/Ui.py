@@ -1,20 +1,39 @@
 import pygame
 
-import Camera
-from Object import Obj
-from Renderer import Renderer, TextRenderer
-from Vec2 import Vec2, zero
+from .camera import Camera
+from .object import Obj
+from .renderer import Renderer, TextRenderer
+from .vec2 import Vec2
+from .GLUtils import GL, GLU
 
 
 class Canvas(Obj):
-    def __init__(self, cam: Camera.Camera):
+    def __init__(self, cam: Camera):
         super().__init__()
         self.cam = cam
-        self.pivot = zero
+        self.pivot = Vec2.zero
 
     @property
     def size(self):
         return self.cam.size
+
+    def render(self):
+        # Resetting gl transformations so 0 0 is upleft and w h is downright
+        GL.glMatrixMode(GL.GL_PROJECTION)
+        GL.glPushMatrix()
+        GL.glLoadIdentity()
+        GLU.gluOrtho2D(0, *self.cam.size.int_tuple, 0)
+        GL.glMatrixMode(GL.GL_MODELVIEW)
+        GL.glPushMatrix()
+        GL.glLoadIdentity()
+
+        self.cam.render(self.children)
+
+        GL.glMatrixMode(GL.GL_PROJECTION)
+        GL.glPopMatrix()
+        GL.glMatrixMode(GL.GL_MODELVIEW)
+        GL.glPopMatrix()
+
 
 
 class UiElement(Obj):
@@ -22,13 +41,16 @@ class UiElement(Obj):
 
     def __init__(self, parent: "Canvas | UiElement", pos: tuple | Vec2 = (0, 0), size: tuple | Vec2 = (0, 0),
                  relpos: tuple | Vec2 = (0, 0), pivot: tuple| Vec2 = (0, 0), *args, **kwargs):
-        self.size = zero
+        self.size = Vec2.zero
         # noinspection PyArgumentList
         super().__init__(pos=pos, parent=parent, *args, **kwargs)
         self.relpos = Vec2.from_tuple(relpos) if isinstance(relpos, tuple) else relpos
+
+        # checking if size(argument) is non zero and if not, then we override it
         size = Vec2.from_tuple(size) if isinstance(size, tuple) else size
         if size.x != 0 or size.y != 0:
             self.size = size
+
         self.pivot = Vec2.from_tuple(pivot) if isinstance(pivot, tuple) else pivot
 
     @property
@@ -43,8 +65,8 @@ class UiRenderer(UiElement, Renderer):
 
 
 class UiTextRenderer(UiElement, TextRenderer):
-    def __init__(self, text: str, font: pygame.font.Font, fore: tuple, back: tuple, parent: Canvas | UiElement, **kwargs):
-        super().__init__(parent=parent, text=text, font=font, fore=fore, back=back, **kwargs)
+    def __init__(self, text: str, font: pygame.font.Font, fore: tuple, back: tuple, parent: Canvas | UiElement, *args, **kwargs):
+        super().__init__(*args, parent=parent, text=text, font=font, fore=fore, back=back, **kwargs)
 
 
 class UiProgressBar(UiElement):

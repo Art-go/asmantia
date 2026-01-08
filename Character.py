@@ -3,9 +3,9 @@ from dataclasses import dataclass, asdict
 
 import pygame
 
-from Object import Obj
-from Renderer import Renderer, TextRenderer
-from Vec2 import Vec2
+from Engine import Obj
+from Engine import Renderer, TextRenderer
+from Engine import Vec2
 
 
 class Character(Obj):

@@ -12,5 +12,4 @@ aliases:
 ## Steps
 - [ ] Move Update Cycle inside of Engine
 	- [ ] Make rendering cycle be handled by engine
-		- [ ] [[Task10 - Remake Obj so it renders children]]
 		- [ ] [[Task2 - Add Scene System]] Would probably be required to make it all work properly

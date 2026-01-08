@@ -16,3 +16,4 @@ aliases:
 	- [x] ![[Task3 - Refactor Utils to nonexistence]]
 	- [x] ![[Task5 - Refactor queue in GLUtils into separate class]]
 	- [ ] ![[Task6 - Make Engine.init()]]
+	- [ ] ![[Task7 - Move Update Cycle to Engine]]

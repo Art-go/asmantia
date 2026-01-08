@@ -8,5 +8,6 @@ from .object import Obj
 from .renderer import Renderer, TextRenderer
 from . import GLUtils, TextRenderUtils, Debug
 from .ui import UiRenderer, UiTextRenderer, UiElement, UiProgressBar, Canvas
+from .GLUtils import DrawQueue
 
 logger.info("Engine is imported")

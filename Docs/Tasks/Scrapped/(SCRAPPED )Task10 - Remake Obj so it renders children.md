@@ -1,7 +1,7 @@
 ---
 tags:
   - task
-Status: In Progress
+Status: Scrapped
 id: 10
 aliases:
   - task#10
@@ -14,9 +14,9 @@ aliases:
 ## Steps
 - [ ] add it to Obj()
 - [ ] add super() to Renderers [^1]
-- [ ] ? maybe some caching? idk, it just kinda makes sense ^37aad1
+- [ ] ? maybe some caching? idk, it just kinda makes sense ^caching
 
-[^1]: As stated [[Task10 - Remake Obj so it renders children#^37aad1|further down]], maybe instead make into req_render which does DFS of a tree, and stores the result in a list on each step.  
+[^1]: As stated [[(SCRAPPED )Task10 - Remake Obj so it renders children#^caching|further down]], maybe instead make into req_render which does DFS of a tree, and stores the result in a list on each step.  
 	
 	There is also a problem of cache invalidation, but i guess we can just keep track on validity and if it is valid, we can just reuse it.
 	so if A->B,C; B becomes invalid => A becomes invalid; A checks validity of itself when asked to render => A sees what B is invalid => A requests B to recalculate cache => A adds valid cache; A checks C => it's valid so it just reuses it.

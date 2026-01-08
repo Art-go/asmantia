@@ -47,7 +47,7 @@ class Obj:
             self._parent.children.remove(self)
 
     def render(self, *args, **kwargs):
-        raise NotImplementedError
+        pass
 
     def update(self):
         pass

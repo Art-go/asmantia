@@ -228,11 +228,11 @@ try:
 
         # Ui Update #
         ## Health ##
-        # ui["h_bar"].progress = sheet.health / sheet.max_health
-        # ui["h_text"].text = f"{sheet.health} / {sheet.max_health}"
+        ui["h_bar"].progress = sheet.health / sheet.max_health
+        ui["h_text"].text = f"{sheet.health} / {sheet.max_health}"
         ## Mana ##
-        # ui["m_bar"].progress = sheet.mana / sheet.max_mana
-        # ui["m_text"].text = f"{sheet.mana} / {sheet.max_mana}"
+        ui["m_bar"].progress = sheet.mana / sheet.max_mana
+        ui["m_text"].text = f"{sheet.mana} / {sheet.max_mana}"
 
         # Render #
         canvas.render()

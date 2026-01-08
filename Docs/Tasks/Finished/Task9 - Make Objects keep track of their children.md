@@ -14,5 +14,5 @@ aliases:
 - [x] Make `parent` field into a property which adds self to parent
 - [x] Make a support for removing it from parent on deleting for future
 ## Relevant new tasks
-- [[Task10 - Remake Obj so it renders children]]
+- [[(SCRAPPED )Task10 - Remake Obj so it renders children]]
 - [[Task11 - Fix Tiles to not be inherited from Obj]]

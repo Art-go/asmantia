@@ -5,10 +5,8 @@ tags:
 
 This is just the list of what i vaguely want
 - Working engine
-	- [[Task1 - Refactoring]]
+	- [[Task1 - Refactoring Engine Into Separate Package]]
 	- [[Task2 - Add Scene System]]
-	- Update Cycle is defined by Engine, not Consuming Code
-		- [[Task7 - Move Update Cycle to Engine]]
 - Region system like in Minecraft
 	- [[TaskX - Refactor Tile System]]
 	- [[TaskX+1 - Remake Tile System to support regions]]

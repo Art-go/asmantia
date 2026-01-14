@@ -52,8 +52,8 @@ signals = []
 signal_debug_string = ""
 
 # Debug #
-M_debug = Debug.DebugManager(fonts['Debug'], (width, height),
-                             [("topright", Vec2(-5, 5)), ("topleft", Vec2(5, 5))])
+M_debug = Debug.DebugManager()
+M_debug.init(fonts['Debug'], (width, height), [("topright", Vec2(-5, 5)), ("topleft", Vec2(5, 5))])
 debug = bool(os.environ.get("DEBUG", False))
 controls = True
 expected_fps = 60
@@ -73,7 +73,7 @@ opened_map = Map.from_folder("Data/Maps/test_map", tileset)
 # Player #
 Character.setup_nicks(font=fonts["Nicks"], fore=(255, 255, 255), back=(0, 0, 0, 127))
 speed = 15
-cam = Camera(400, (width, height), parent=None, center=True)
+cam = Camera(400, (width, height), parent=None)
 objects = [opened_map]
 
 # """
@@ -102,11 +102,11 @@ pygame.draw.rect(mana_bar, (50, 90, 200), (0, 0, 100, 10))
 mana_bar_tex = GLUtils.surface_to_texture(mana_bar)
 
 stats_block = UiElement(parent=ch_info, pos=(0, 140), size=(ch_info_size[0], 120))
-sheet = CharSheet()
+sheet = CharSheet(sprite_info=("Assets/Sprites/Characters.png", 0, 0, 4, 4))
 ui = {
     "background": ch_info,
     ## icon block ##
-    "player_sprite": UiRenderer(pygame.image.load("Assets/Sprites/Characters.png").convert_alpha().subsurface((0, 0, 4, 4)), pos=(10, 10),
+    "player_sprite": UiRenderer(sheet.sprite, pos=(10, 10),
                                 pivot=(0, 0), parent=icon_block, relpos=(0, 0), size=(60, 60)),
     ## name block
     "player_name": UiTextRenderer(sheet.name, font=fonts["ChInfo.H1"], fore=(255, 255, 255), back=(0, 0, 0, 0),
@@ -224,14 +224,12 @@ try:
         ############
         #    UI    #
         ############
-        # Reset Pos #
-
         # Ui Update #
         ## Health ##
         ui["h_bar"].progress = sheet.health / sheet.max_health
         ui["h_text"].text = f"{sheet.health} / {sheet.max_health}"
         ## Mana ##
-        ui["m_bar"].progress = sheet.mana / sheet.max_mana
+        ui["m_bar"].progress = (sheet.mana / sheet.max_mana) if sheet.max_mana > 0 else 0
         ui["m_text"].text = f"{sheet.mana} / {sheet.max_mana}"
 
         # Render #
@@ -253,9 +251,9 @@ try:
         M_debug(f'dt: {dt}, Max dt: {dt_spike}')
         if debug:
             M_debug(f'Cam: P: {cam.pos.int_tuple}/{cam.global_pos.int_tuple}, Zm: {cam.zoom:.3g}, W: '
-                        f'{float(cam.width):.6g}')
+                    f'{float(cam.width):.6g}')
             M_debug(f'UL: {cam.world_up_left.int_tuple}, DR: {cam.world_down_right.int_tuple}; '
-                        f'Scrn: S: {cam.size.tuple}, WS: {cam.world_size.int_tuple}')
+                    f'Scrn: S: {cam.size.tuple}, WS: {cam.world_size.int_tuple}')
             M_debug(f'Mouse: Sc: {mouse_pos.int_tuple}, Wr: {cam.screen_to_world(mouse_pos).int_tuple}')
             M_debug(f'Signals: {signal_debug_string}')
 

@@ -10,6 +10,5 @@ aliases:
 >I mean, there isn't anything that much to say
 
 ## Steps
-- [ ] Just do it!
-## Relevant new tasks
-- [[]]
+- [ ] Add runtime time counter with... ingame time? so it adds dt every frame and when displays
+- [ ] Add Delta time counter

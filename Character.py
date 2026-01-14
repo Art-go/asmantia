@@ -59,25 +59,20 @@ class CharSheet:
     race: str = "Human"
     name: str = "Noname"
     pos: Vec2 = None
-    server: bool = False
     ID: str = ""
 
     def __post_init__(self):
         self.pos = Vec2.from_tuple(self.pos) if self.pos else Vec2()
         if not self.ID:
             self.ID = f"{self.name}, {self.race}, {self.title}, PH"
-        if self.sprite_info and not self.server:
+        if self.sprite_info:
             self.sprite = pygame.image.load(self.sprite_info[0])\
                                       .subsurface(self.sprite_info[1:])\
                                       .convert_alpha()
 
     @classmethod
-    def from_dict(cls, d: dict, server: bool=False) -> "CharSheet":
-        return cls(server=server, **d)
-
-    @classmethod
-    def from_json(cls, jsons: str, server: bool=False) -> "CharSheet":
-        return cls.from_dict(json.loads(jsons), server=server)
+    def from_json(cls, jsons: str) -> "CharSheet":
+        return cls(**json.loads(jsons))
 
     def to_dict(self):
         dct = asdict(self)

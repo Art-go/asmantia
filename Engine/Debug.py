@@ -2,8 +2,9 @@ import logging
 
 import pygame
 
-from .GLUtils import DrawQueue, GL, GLU
+from .GLUtils import DrawQueue, screen_render
 from .TextRenderUtils import TRenderer
+from .singleton import Singleton
 from .vec2 import Vec2
 
 TRender = TRenderer()
@@ -11,6 +12,7 @@ TRender = TRenderer()
 DEBUG_BACK = (0, 0, 0, 127)
 
 logger = logging.getLogger(__name__)
+
 
 class DebugDisplay:
     pos: Vec2
@@ -39,61 +41,49 @@ class DebugDisplay:
         self.pos = self.relpos[1]
         match self.relpos[0]:
             case "topright":
-                self.pos += Vec2(self.manager.debug_surface.get_size()[0], 0)
+                self.pos += Vec2(self.manager.size[0], 0)
 
 
-class DebugManager:
+class DebugManager(Singleton):
     displays: list[DebugDisplay]
     font: pygame.font.Font
-    debug_surface: pygame.Surface
+    screen: pygame.Surface
+    queue: DrawQueue
 
-    _instance = None
-    exist = False
+    _custom_init = True
 
-    def __new__(cls, *args, **kwargs):
-        if not cls._instance:
-            cls._instance = super().__new__(cls)
-        logger.debug(f"Instance of {cls} requested")
-        return cls._instance
+    def init(self, font: pygame.font.Font = None, size: tuple[int, int] = None,
+             display_positions: list[tuple[str, Vec2]] = None):
+        if self.initialized:
+            raise RuntimeError("Init was called second time")
+        self.initialized = True
 
-    def __init__(self, font: pygame.font.Font = None, size: tuple[int, int] = None,
-                 display_positions: list[tuple[str, Vec2]] = None):
-        if self.exist:
-            return
-        elif font is None or size is None or display_positions is None:
-            raise TypeError(f"On first init, {__name__}.{type(self)} needs all arguments provided")
         self.displays: list[DebugDisplay] = []
         self.update_size(size)
         for do in display_positions:
             self.displays.append(DebugDisplay(do, self))
         self.font = font
-        self.exist = True
         self.queue: DrawQueue = DrawQueue()
         logger.debug(f"Instance of {type(self)} is created")
 
+    @Singleton.check_init
     def __call__(self, text, d=0):
         self.displays[d].add(text)
 
+    @Singleton.check_init
     def update_size(self, size: tuple[int, int]):
-        self.debug_surface = pygame.Surface(size)
+        self.screen = pygame.Surface(size)
         for d in self.displays:
             d.update_size()
 
+    @property
+    def size(self):
+        return self.screen.get_size()
+
+    @Singleton.check_init
+    @screen_render
     def draw(self):
-        GL.glMatrixMode(GL.GL_PROJECTION)
-        GL.glPushMatrix()
-        GL.glLoadIdentity()
-        GLU.gluOrtho2D(0, *self.debug_surface.get_size(), 0)
-        GL.glMatrixMode(GL.GL_MODELVIEW)
-        GL.glPushMatrix()
-        GL.glLoadIdentity()
-        
         for i in self.displays:
             i.reset_offset()
-        
+
         self.queue()
-        
-        GL.glMatrixMode(GL.GL_PROJECTION)
-        GL.glPopMatrix()
-        GL.glMatrixMode(GL.GL_MODELVIEW)
-        GL.glPopMatrix()

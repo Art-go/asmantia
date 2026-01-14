@@ -43,8 +43,11 @@ def batch_draw(texture_list):
     GL.glEnable(GL.GL_TEXTURE_2D)
     GL.glEnable(GL.GL_BLEND)
     GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
+    last_tex = None
     for x, y, w, h, tex in texture_list:
-        GL.glBindTexture(GL.GL_TEXTURE_2D, tex)
+        if tex!=last_tex:
+            GL.glBindTexture(GL.GL_TEXTURE_2D, tex)
+            last_tex = tex
         GL.glBegin(GL.GL_QUADS)
         GL.glTexCoord2f(0, 0)
         GL.glVertex2f(x, y)
@@ -82,3 +85,22 @@ def set_size_center(w, h):
     GL.glLoadIdentity()
     GLU.gluOrtho2D(-w / 2, w / 2, h / 2, -h / 2)
     GL.glMatrixMode(GL.GL_MODELVIEW)
+
+def screen_render(func):
+    def wrapper(self, *args, **kwargs):
+        GL.glMatrixMode(GL.GL_PROJECTION)
+        GL.glPushMatrix()
+        GL.glLoadIdentity()
+        GLU.gluOrtho2D(0, *self.size, 0)
+        GL.glMatrixMode(GL.GL_MODELVIEW)
+        GL.glPushMatrix()
+        GL.glLoadIdentity()
+
+        func(self, *args, **kwargs)
+
+        GL.glMatrixMode(GL.GL_PROJECTION)
+        GL.glPopMatrix()
+        GL.glMatrixMode(GL.GL_MODELVIEW)
+        GL.glPopMatrix()
+
+    return wrapper

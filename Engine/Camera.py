@@ -13,8 +13,7 @@ class Camera(Obj):
     center: bool
     queue: DrawQueue
 
-    def __init__(self, width: int, size: tuple[int, int], *, pos: Vec2 | tuple | None = None, parent: Obj = None,
-                 center: bool = False):
+    def __init__(self, width: int, size: tuple[int, int], *, pos: Vec2 | tuple | None = None, parent: Obj = None):
         """
 
 
@@ -22,10 +21,8 @@ class Camera(Obj):
         :type size: tuple[int, int]
         :type pos: Vec2 | tuple | None
         :type parent: Obj
-        :type center: bool
         """
         super().__init__(pos=pos, parent=parent)
-        self.center = center
         self.size = Vec2.from_tuple(size)
         self.width = width
         self.queue = DrawQueue()

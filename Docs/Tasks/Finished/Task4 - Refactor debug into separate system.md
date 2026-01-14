@@ -14,3 +14,7 @@ aliases:
 
 ## Steps
 - [x] Refactor debug into separate system
+
+
+## Relevant new tasks
+- [[Task21 - Realize singleton as a base class to inherit from]]

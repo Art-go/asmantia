@@ -2,16 +2,14 @@ import pygame
 
 from . import GLUtils
 from .GLUtils import DrawQueue
+from .singleton import Singleton
 
-#@staticclass
-class TRenderer:
-    _instance = None
-    def __new__(cls, *args, **kwargs):
-        if not cls._instance:
-            cls._instance = super().__new__(cls)
-        return cls._instance
+
+class TRenderer(Singleton):
+    exists = False
 
     def __init__(self):
+        super().__init__()
         self.prerendered_text = {}
 
     def render_text(self, text: str, font: pygame.font.Font, pos, queue: DrawQueue,

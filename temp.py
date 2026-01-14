@@ -1,7 +1,18 @@
-import logging
+def deco1(func):
+    def wrapper(*a, **kw):
+        print("deco1")
+        func(*a, **kw)
+    return wrapper
 
-from logging_setup import setup_logging
-setup_logging(logging.INFO)
+def deco2(func):
+    def wrapper(*a, **kw):
+        print("deco2")
+        func(*a, **kw)
+    return wrapper
 
-import Engine
-print(Engine.Vec2.down)
+@deco1
+@deco2
+def foo():
+    print("hui")
+
+foo()

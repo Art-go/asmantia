@@ -1,11 +1,12 @@
 from __future__ import annotations
+
 import pygame
 
+from .GLUtils import screen_render
 from .camera import Camera
 from .object import Obj
 from .renderer import Renderer, TextRenderer
 from .vec2 import Vec2
-from .GLUtils import GL, GLU
 
 
 class Canvas(Obj):
@@ -21,22 +22,9 @@ class Canvas(Obj):
     def size(self):
         return self.cam.size
 
+    @screen_render
     def render(self):
-        # Resetting gl transformations so 0 0 is upleft and w h is downright
-        GL.glMatrixMode(GL.GL_PROJECTION)
-        GL.glPushMatrix()
-        GL.glLoadIdentity()
-        GLU.gluOrtho2D(0, *self.cam.size.int_tuple, 0)
-        GL.glMatrixMode(GL.GL_MODELVIEW)
-        GL.glPushMatrix()
-        GL.glLoadIdentity()
-
         self.cam.render(self.elements)
-
-        GL.glMatrixMode(GL.GL_PROJECTION)
-        GL.glPopMatrix()
-        GL.glMatrixMode(GL.GL_MODELVIEW)
-        GL.glPopMatrix()
 
 
 class UiElement(Obj):
@@ -59,6 +47,7 @@ class UiElement(Obj):
 
     @Obj.parent.setter
     def parent(self, new_parent: "Canvas | UiElement"):
+        # noinspection PyUnreachableCode
         if not isinstance(new_parent, Canvas | UiElement):
             raise TypeError("Parent of UiElement should be Canvas, or another UiElement")
         super(UiElement, UiElement).parent.__set__(self, new_parent)
@@ -72,6 +61,7 @@ class UiElement(Obj):
     @property
     def canvas(self):
         return self._canvas
+
     @canvas.setter
     def canvas(self, new_canvas):
         if self._canvas is not None:

@@ -87,18 +87,23 @@ class Vec2:
         return Vec2(x=int(self.x), y=int(self.y))
 
     def __eq__(self, other: "Vec2"):
+        if not isinstance(other, Vec2): return False
         return self.x == other.x and self.y == other.y
 
-    def __gt__(self, other: "Vec2"):
+    def __ge__(self, other: "Vec2"):
+        if not isinstance(other, Vec2): return False
         return self.x > other.x or self.y > other.y
 
-    def __lt__(self, other: "Vec2"):
+    def __le__(self, other: "Vec2"):
+        if not isinstance(other, Vec2): return False
         return self.x < other.x or self.y < other.y
 
-    def __ge__(self, other: "Vec2"):
+    def __gt__(self, other: "Vec2"):
+        if not isinstance(other, Vec2): return False
         return self.x > other.x and self.y > other.y
 
-    def __le__(self, other: "Vec2"):
+    def __lt__(self, other: "Vec2"):
+        if not isinstance(other, Vec2): return False
         return self.x < other.x and self.y < other.y
 
     def __neg__(self):
@@ -111,14 +116,19 @@ class Vec2:
             raise TypeError(f"Can't mod {type(self)} by {type(other)}")
 
     def normalize(self):
-        len = self.len()
+        len = self.len
         return self / len if len > 0 else self.__class__()
 
+    @property
     def len(self):
         return sqrt(self.x ** 2 + self.y ** 2)
 
     def copy(self):
         return Vec2(x=self.x, y=self.y)
+
+    def __iter__(self):
+        yield self.x
+        yield self.y
 
 # init presets
 Vec2.zero = Vec2(0, 0)

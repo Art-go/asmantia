@@ -4,15 +4,15 @@ import pygame
 
 from . import GLUtils
 from .GLUtils import DrawQueue
-from .singleton import Singleton
+from .singleton import singleton
 
 logger = logging.getLogger(__name__)
 
-class TRenderer(Singleton):
+@singleton
+class TRenderer:
     exists = False
 
     def __init__(self):
-        super().__init__()
         self.prerendered_text = {}
 
     def render_text(self, text: str, font: pygame.font.Font, pos, queue: DrawQueue,

@@ -1,10 +1,11 @@
 import logging
+from functools import wraps
 
 import pygame
 
 from .GLUtils import DrawQueue, screen_render
 from .TextRenderUtils import TRenderer
-from .singleton import Singleton
+from .singleton import singleton
 from .vec2 import Vec2
 
 TRender = TRenderer()
@@ -44,13 +45,14 @@ class DebugDisplay:
                 self.pos += Vec2(self.manager.size[0], 0)
 
 
-class DebugManager(Singleton):
+@singleton
+class DebugManager:
     displays: list[DebugDisplay]
     font: pygame.font.Font
     screen: pygame.Surface
     queue: DrawQueue
 
-    _custom_init = True
+    initialized = False
 
     def init(self, font: pygame.font.Font = None, size: tuple[int, int] = None,
              display_positions: list[tuple[str, Vec2]] = None):
@@ -66,11 +68,21 @@ class DebugManager(Singleton):
         self.queue: DrawQueue = DrawQueue()
         logger.debug(f"Instance of {type(self)} is created")
 
-    @Singleton.check_init
+    @staticmethod
+    def check_init(method):
+        @wraps(method)
+        def wrapper(self, *args, **kwargs):
+            if not self.initialized:
+                raise RuntimeError("Instance wasn't initialized. Perhaps, you forgot to call .init()?")
+            method(self, *args, **kwargs)
+
+        return wrapper
+
+    @check_init
     def __call__(self, text, d=0):
         self.displays[d].add(text)
 
-    @Singleton.check_init
+    @check_init
     def update_size(self, size: tuple[int, int]):
         self.screen = pygame.Surface(size)
         for d in self.displays:
@@ -80,7 +92,7 @@ class DebugManager(Singleton):
     def size(self):
         return self.screen.get_size()
 
-    @Singleton.check_init
+    @check_init
     @screen_render
     def draw(self):
         for i in self.displays:

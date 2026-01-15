@@ -3,7 +3,7 @@ from math import floor, ceil, sqrt
 
 
 # noinspection PyTypeHints
-@dataclass
+@dataclass(slots=True)
 class Vec2:
     x: int | float = 0
     y: int | float = 0
@@ -91,20 +91,52 @@ class Vec2:
         return self.x == other.x and self.y == other.y
 
     def __ge__(self, other: "Vec2"):
-        if not isinstance(other, Vec2): return False
-        return self.x > other.x or self.y > other.y
+        return self.x >= other.x and self.y >= other.y
 
     def __le__(self, other: "Vec2"):
-        if not isinstance(other, Vec2): return False
-        return self.x < other.x or self.y < other.y
+        return self.x <= other.x and self.y <= other.y
 
     def __gt__(self, other: "Vec2"):
-        if not isinstance(other, Vec2): return False
         return self.x > other.x and self.y > other.y
 
     def __lt__(self, other: "Vec2"):
-        if not isinstance(other, Vec2): return False
         return self.x < other.x and self.y < other.y
+
+    def ge_or(self, other: "Vec2") -> bool:
+        """
+        Same as self >= other, except with OR instead of AND
+
+        :type other: Vec2
+        :rtype: bool
+        """
+        return self.x >= other.x or self.y >= other.y
+
+    def le_or(self, other: "Vec2"):
+        """
+        Same as self <= other, except with OR instead of AND
+
+        :type other: Vec2
+        :rtype: bool
+        """
+        return self.x <= other.x or self.y <= other.y
+
+    def gt_or(self, other: "Vec2"):
+        """
+        Same as self > other, except with OR instead of AND
+
+        :type other: Vec2
+        :rtype: bool
+        """
+        return self.x > other.x or self.y > other.y
+
+    def lt_or(self, other: "Vec2"):
+        """
+        Same as self < other, except with OR instead of AND
+
+        :type other: Vec2
+        :rtype: bool
+        """
+        return self.x < other.x or self.y < other.y
 
     def __neg__(self):
         return Vec2(x=-self.x, y=-self.y)
@@ -129,6 +161,14 @@ class Vec2:
     def __iter__(self):
         yield self.x
         yield self.y
+
+    @property
+    def vx(self):
+        return Vec2(x=self.x)
+
+    @property
+    def vy(self):
+        return Vec2(y=self.y)
 
 # init presets
 Vec2.zero = Vec2(0, 0)

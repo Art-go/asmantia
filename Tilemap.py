@@ -113,9 +113,9 @@ class Chunk(Obj):
             self.update_tile_pos()
         if self.is_empty:
             return
-        if self.global_pos >= cam.world_down_right:
+        if self.global_pos.gt_or(cam.world_down_right):
             return
-        if self.global_pos + self.size <= cam.world_up_left:
+        if (self.global_pos + self.size).lt_or(cam.world_up_left):
             return
         if not self.cached_valid:
             self.cache()

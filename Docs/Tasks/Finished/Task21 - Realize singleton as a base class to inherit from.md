@@ -14,3 +14,6 @@ aliases:
 - [x] Copy `__new__` to it
 - [x] Make `DebugManager` and `TRenderer` inherit from it
 - [x] Move [[Task20 - Move init in DebugManager to different function#^checks|checks]] from `Engine.Debug` to be used as decorator
+
+## Relevant new tasks
+- [[Make singleton a metaclass]]

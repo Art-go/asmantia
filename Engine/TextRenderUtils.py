@@ -1,9 +1,12 @@
+import logging
+
 import pygame
 
 from . import GLUtils
 from .GLUtils import DrawQueue
 from .singleton import Singleton
 
+logger = logging.getLogger(__name__)
 
 class TRenderer(Singleton):
     exists = False
@@ -21,6 +24,7 @@ class TRenderer(Singleton):
     def prerender_text(self, text: str, font: pygame.font.Font, fore=(255, 255, 255), back=(0, 0, 0)):
         if (text, font, fore, back) in self.prerendered_text:
             return self.prerendered_text[text, font, fore, back]
+        logger.debug(f"Rendering: {text, font, fore, back}")
         rendered_text = font.render(text, True, fore)
         background = pygame.Surface(
             (rendered_text.get_width() + 6, rendered_text.get_height() + 6), pygame.SRCALPHA)

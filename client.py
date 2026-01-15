@@ -91,15 +91,15 @@ bars_block = UiElement(parent=ch_info, pos=(0, 80), size=(ch_info_size[0], 60))
 
 bars_back = pygame.Surface((100, 10), pygame.SRCALPHA)
 pygame.draw.rect(bars_back, (30, 30, 30), (0, 0, 100, 10))
-bars_back_tex = GLUtils.surface_to_texture(bars_back)
+bars_back_tex = GLUtils.surf_to_tex_default(bars_back)
 
 health_bar = pygame.Surface((100, 10), pygame.SRCALPHA)
 pygame.draw.rect(health_bar, (200, 10, 10), (0, 0, 100, 10))
-health_bar_tex = GLUtils.surface_to_texture(health_bar)
+health_bar_tex = GLUtils.surf_to_tex_default(health_bar)
 
 mana_bar = pygame.Surface((100, 10), pygame.SRCALPHA)
 pygame.draw.rect(mana_bar, (50, 90, 200), (0, 0, 100, 10))
-mana_bar_tex = GLUtils.surface_to_texture(mana_bar)
+mana_bar_tex = GLUtils.surf_to_tex_default(mana_bar)
 
 stats_block = UiElement(parent=ch_info, pos=(0, 140), size=(ch_info_size[0], 120))
 sheet = CharSheet(sprite_info=("Assets/Sprites/Characters.png", 0, 0, 4, 4))

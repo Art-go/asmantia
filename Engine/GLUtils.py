@@ -1,6 +1,7 @@
 import pygame
 from OpenGL import GL, GLU
 
+from .texture import Texture
 
 def surface_to_texture(surface):
     texture_data = pygame.image.tostring(surface, "RGBA")
@@ -16,6 +17,9 @@ def surface_to_texture(surface):
     GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NEAREST)
 
     return texture
+
+def surf_to_tex_default(surface):
+    return Texture(surface_to_texture(surface), (0, 0, 1, 1))
 
 
 def draw_quad(x, y, width, height, texture):
@@ -40,40 +44,47 @@ def draw_quad(x, y, width, height, texture):
 
 
 def batch_draw(texture_list):
+    if len(texture_list)==0:
+        return
+
     GL.glEnable(GL.GL_TEXTURE_2D)
     GL.glEnable(GL.GL_BLEND)
     GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
-    last_tex = None
-    for x, y, w, h, tex in texture_list:
-        if tex!=last_tex:
-            GL.glBindTexture(GL.GL_TEXTURE_2D, tex)
-            last_tex = tex
-        GL.glBegin(GL.GL_QUADS)
-        GL.glTexCoord2f(0, 0)
-        GL.glVertex2f(x, y)
-        GL.glTexCoord2f(1, 0)
-        GL.glVertex2f(x + w, y)
-        GL.glTexCoord2f(1, 1)
-        GL.glVertex2f(x + w, y + h)
-        GL.glTexCoord2f(0, 1)
-        GL.glVertex2f(x, y + h)
-        GL.glEnd()
+
+    current_tex = texture_list[0][1].tex_id
+    GL.glBindTexture(GL.GL_TEXTURE_2D, current_tex)
+    GL.glBegin(GL.GL_QUADS)
+
+    for [x, y, w, h], tex in texture_list:
+        tex_id, [u0, v0, u1, v1] = tex.tex_id, tex.uv
+        if tex_id!=current_tex:
+            GL.glEnd()
+            GL.glBindTexture(GL.GL_TEXTURE_2D, tex_id)
+            GL.glBegin(GL.GL_QUADS)
+            current_tex = tex_id
+
+        GL.glTexCoord2f(u0, v0); GL.glVertex2f(x, y)
+        GL.glTexCoord2f(u1, v0); GL.glVertex2f(x + w, y)
+        GL.glTexCoord2f(u1, v1); GL.glVertex2f(x + w, y + h)
+        GL.glTexCoord2f(u0, v1); GL.glVertex2f(x, y + h)
+
+    GL.glEnd()
     GL.glDisable(GL.GL_TEXTURE_2D)
     GL.glDisable(GL.GL_BLEND)
 
 
 class DrawQueue:
-    queue: list[tuple[int, int, int, int, int]]  # list[tuple[x, y, width, height, texture]]
+    queue: list[tuple[tuple[int, int, int, int], Texture]]  # list[tuple[x, y, width, height, texture]]
 
     def __init__(self):
         self.queue = []
 
-    def __iadd__(self, other: tuple[int, int, int, int, int]):
-        self.queue.append(other)
+    def __iadd__(self, other: tuple[tuple[int, int, int, int], Texture]):
+        self.append = self.queue.append(other)
         return self
 
-    def add(self, x, y, width, height, texture):
-        self.__iadd__((x, y, width, height, texture))
+    def add(self, x, y, width, height, texture: Texture):
+        self.__iadd__(((x, y, width, height), texture))
 
     def __call__(self):
         batch_draw(self.queue)

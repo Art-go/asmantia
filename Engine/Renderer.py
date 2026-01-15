@@ -16,7 +16,7 @@ class Renderer(Obj):
     def __init__(self, img: pygame.Surface, pos=None, *, tex=None, parent=None, scalable=True, pivot=(0.5, 0.5), scale=(1, 1)):
         super().__init__(pos=pos, parent=parent)
         self.src = img.convert_alpha()
-        self.tex = tex if tex is not None else GLUtils.surface_to_texture(self.src)
+        self.tex = tex if tex is not None else GLUtils.surf_to_tex_default(self.src)
         self.size = Vec2.from_tuple(self.src.get_size())
         self.scalable = scalable
         self.pivot = pivot
@@ -27,7 +27,7 @@ class Renderer(Obj):
         size = self.size if self.scalable else self.size / cam.zoom
         size *= self.scale
         pos -= size * self.pivot
-        cam.queue += pos.x, pos.y, size.x, size.y, self.tex
+        cam.queue += (pos.x, pos.y, size.x, size.y), self.tex
 
 
 class TextRenderer(Renderer):

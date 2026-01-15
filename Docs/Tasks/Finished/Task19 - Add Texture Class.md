@@ -1,7 +1,7 @@
 ---
 tags:
   - task
-Status: Pending
+Status: Finished
 id: 19
 aliases:
   - task#19
@@ -10,5 +10,5 @@ aliases:
 >I envision it as Texture{tex: int, tl: float, tr: float, br: float, bl: float}
 
 ## Steps
-- [ ] Do it
-- [ ] Add support for it everywhere else
+- [x] Do it
+- [x] Add support for it everywhere else

@@ -105,7 +105,7 @@ class Chunk(Obj):
             t.render(self.cached, self.tile_pos[t])
         if self.cached_tex is not None:
             glDeleteTextures([self.cached_tex])
-        self.cached_tex = GLUtils.surface_to_texture(self.cached)
+        self.cached_tex = GLUtils.surf_to_tex_default(self.cached)
         self.cached_valid = True
 
     def render(self, cam: Camera):
@@ -122,7 +122,7 @@ class Chunk(Obj):
 
         pos = self.global_pos
         size = self.size
-        cam.queue += pos.x, pos.y, size.x, size.y, self.cached_tex
+        cam.queue += (pos.x, pos.y, size.x, size.y), self.cached_tex
 
     def check_empty(self):
         self.is_empty = True

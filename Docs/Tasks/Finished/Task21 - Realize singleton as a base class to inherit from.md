@@ -16,4 +16,4 @@ aliases:
 - [x] Move [[Task20 - Move init in DebugManager to different function#^checks|checks]] from `Engine.Debug` to be used as decorator
 
 ## Relevant new tasks
-- [[Make singleton a metaclass]]
+- [[Task23 - Make singleton a decorator]]

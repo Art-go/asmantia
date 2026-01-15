@@ -1,6 +1,9 @@
+from functools import wraps
+
 import pygame
 from OpenGL import GL, GLU
 
+from .vec2 import Vec2
 from .texture import Texture
 
 def surface_to_texture(surface):
@@ -19,7 +22,7 @@ def surface_to_texture(surface):
     return texture
 
 def surf_to_tex_default(surface):
-    return Texture(surface_to_texture(surface), (0, 0, 1, 1))
+    return Texture(surface_to_texture(surface), surface, (0, 0, 1, 1), Vec2(0, 0), Vec2.from_tuple(surface.get_size()))
 
 
 def draw_quad(x, y, width, height, texture):
@@ -98,6 +101,7 @@ def set_size_center(w, h):
     GL.glMatrixMode(GL.GL_MODELVIEW)
 
 def screen_render(func):
+    @wraps(func)
     def wrapper(self, *args, **kwargs):
         GL.glMatrixMode(GL.GL_PROJECTION)
         GL.glPushMatrix()

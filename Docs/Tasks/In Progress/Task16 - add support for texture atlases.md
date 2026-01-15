@@ -12,7 +12,7 @@ aliases:
 ## Steps
 - [x] Add support for UV
 	- [x] Which i envision as [[Task19 - Add Texture Class]]
-- [ ] Add Atlas Class to dynamically create atlases 
-- [ ] make it so you can load sprite atlas as Atlas and get either `Texture` or `pygame.Surface` for each sprite
-- [ ] Make cached tiles use atlases, probably in [[TaskX - Refactor Tile System]]
-- [ ] 
+- [x] Add Atlas Class
+- [ ] Add a Packer
+- [x] make it so you can load sprite atlas as Atlas and get either `Texture` or `pygame.Surface` for each sprite
+- [ ] Make cached tiles use atlases, probably in [[TaskX - Refactor Tile System]]^cache-tiles

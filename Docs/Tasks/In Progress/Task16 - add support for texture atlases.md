@@ -1,7 +1,7 @@
 ---
 tags:
   - task
-Status: Pending
+Status: Finished
 id: 16
 aliases:
   - task#16
@@ -13,6 +13,14 @@ aliases:
 - [x] Add support for UV
 	- [x] Which i envision as [[Task19 - Add Texture Class]]
 - [x] Add Atlas Class
-- [ ] Add a Packer
+- [x] Add a `Packer`
+	- [x] "Implement" `GuillotinePacker`
+		- [x] Fix it...
+	- [x] "Implement" `SkylinePacker`
+		- [x] Fix it...
+		- [ ] Make text renderer use it
 - [x] make it so you can load sprite atlas as Atlas and get either `Texture` or `pygame.Surface` for each sprite
-- [ ] Make cached tiles use atlases, probably in [[TaskX - Refactor Tile System]]^cache-tiles
+- [ ] ? Make cached chunks use atlases, probably in [[TaskX - Refactor Tile System]]^cache-tiles
+
+## Relevant new tasks
+- [[Task24 - Rect class]]

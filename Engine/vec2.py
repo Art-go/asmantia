@@ -170,6 +170,13 @@ class Vec2:
     def vy(self):
         return Vec2(y=self.y)
 
+    def max(self, other: "Vec2"):
+        return Vec2(max(self.x, other.x), max(self.y, other.y))
+
+    def min(self, other: "Vec2"):
+        return Vec2(min(self.x, other.x), min(self.y, other.y))
+
+
 # init presets
 Vec2.zero = Vec2(0, 0)
 Vec2.one = Vec2(1, 1)

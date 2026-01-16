@@ -7,19 +7,27 @@ from .vec2 import Vec2
 from .texture import Texture
 
 def surface_to_texture(surface):
-    texture_data = pygame.image.tostring(surface, "RGBA")
+    data = pygame.image.tostring(surface, "RGBA")
     w, h = surface.get_size()
 
     texture = GL.glGenTextures(1)
     GL.glBindTexture(GL.GL_TEXTURE_2D, texture)
     GL.glTexImage2D(GL.GL_TEXTURE_2D, 0, GL.GL_RGBA, w, h, 0,
-                    GL.GL_RGBA, GL.GL_UNSIGNED_BYTE, texture_data)
+                    GL.GL_RGBA, GL.GL_UNSIGNED_BYTE, data)
 
-    # Set texture parameters
     GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR)
     GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NEAREST)
 
     return texture
+
+def update_texture(tex_id: int, surface: pygame.Surface, offset: Vec2 = None):
+    data = pygame.image.tostring(surface, "RGBA")
+    if offset is None:
+        offset = Vec2.zero
+    size = Vec2.from_tuple(surface.get_size())
+    GL.glBindTexture(GL.GL_TEXTURE_2D, tex_id)
+    GL.glTexSubImage2D(GL.GL_TEXTURE_2D, 0, offset.x, offset.y, size.x, size.y,
+                    format, type, data)
 
 def surf_to_tex_default(surface):
     return Texture(surface_to_texture(surface), surface, (0, 0, 1, 1), Vec2(0, 0), Vec2.from_tuple(surface.get_size()))

@@ -1,7 +1,7 @@
 ---
 tags:
   - task
-Status: Pending
+Status: Finished
 id: 15
 aliases:
   - task#15

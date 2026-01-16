@@ -9,6 +9,7 @@ from .renderer import Renderer, TextRenderer
 from . import GLUtils, TextRenderUtils, Debug
 from .ui import UiRenderer, UiTextRenderer, UiElement, UiProgressBar, Canvas
 from .GLUtils import DrawQueue
-from .texture import Texture
+from .texture import Texture, TextureAtlas
+from .packer import Packer, GuillotinePacker, SkylinePacker
 
 logger.info("Engine is imported")

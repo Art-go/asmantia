@@ -66,7 +66,7 @@ class DebugManager:
             self.displays.append(DebugDisplay(do, self))
         self.font = font
         self.queue: DrawQueue = DrawQueue()
-        logger.debug(f"Instance of {type(self)} is created")
+        logger.debug(f"Instance of {self.__class__} is initialized")
 
     @staticmethod
     def check_init(method):

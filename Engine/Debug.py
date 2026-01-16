@@ -30,8 +30,8 @@ class DebugDisplay:
 
     def add(self, text: str):
         pos = {self.relpos[0]: (self.pos + self.offset).tuple}
-        surf, tex = TRender.prerender_text(text, self.manager.font, back=DEBUG_BACK)
-        text_rect: pygame.Rect = surf.get_rect(**pos)
+        tex = TRender.prerender_text(text, self.manager.font, back=DEBUG_BACK)
+        text_rect: pygame.Rect = tex.surf.get_rect(**pos)
         self.manager.queue += (text_rect.x, text_rect.y, text_rect.width, text_rect.height), tex
         self.offset.y += text_rect.height
 

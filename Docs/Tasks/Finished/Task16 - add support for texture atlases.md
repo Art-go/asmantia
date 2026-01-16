@@ -18,9 +18,11 @@ aliases:
 		- [x] Fix it...
 	- [x] "Implement" `SkylinePacker`
 		- [x] Fix it...
-		- [ ] Make text renderer use it
+		- [x] Make text renderer use it
 - [x] make it so you can load sprite atlas as Atlas and get either `Texture` or `pygame.Surface` for each sprite
 - [ ] ? Make cached chunks use atlases, probably in [[TaskX - Refactor Tile System]]^cache-tiles
 
 ## Relevant new tasks
 - [[Task24 - Rect class]]
+- [[Task25 - Transpose SkylinePacker]]
+- [[Task26 - Add transparency flag to Texture]]

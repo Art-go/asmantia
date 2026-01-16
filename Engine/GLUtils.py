@@ -1,3 +1,4 @@
+import logging
 from functools import wraps
 
 import pygame
@@ -5,6 +6,8 @@ from OpenGL import GL, GLU
 
 from .vec2 import Vec2
 from .texture import Texture
+
+logger = logging.getLogger(__name__)
 
 def surface_to_texture(surface):
     data = pygame.image.tostring(surface, "RGBA")
@@ -27,7 +30,7 @@ def update_texture(tex_id: int, surface: pygame.Surface, offset: Vec2 = None):
     size = Vec2.from_tuple(surface.get_size())
     GL.glBindTexture(GL.GL_TEXTURE_2D, tex_id)
     GL.glTexSubImage2D(GL.GL_TEXTURE_2D, 0, offset.x, offset.y, size.x, size.y,
-                    format, type, data)
+                    GL.GL_RGBA, GL.GL_UNSIGNED_BYTE, data)
 
 def surf_to_tex_default(surface):
     return Texture(surface_to_texture(surface), surface, (0, 0, 1, 1), Vec2(0, 0), Vec2.from_tuple(surface.get_size()))

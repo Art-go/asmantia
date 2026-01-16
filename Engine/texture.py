@@ -3,6 +3,7 @@ from typing import Any, Type
 
 import pygame
 
+from .rect import Rect
 from .vec2 import Vec2
 from . import GLUtils
 from .packer import Packer, GuillotinePacker
@@ -40,18 +41,23 @@ class TextureAtlas:
         if subtextures:
             self.add(subtextures)
 
+    @classmethod
+    def create_empty(cls, size: Vec2, *args, **kwargs):
+        return cls(pygame.Surface(size.int_tuple), *args, **kwargs)
+
     def calculate_uv(self, xy: Vec2) -> Vec2:
         return xy / self.size
 
     def add(self, subtextures: dict[Any, tuple[Vec2, Vec2]]) -> None:
         """
         Adds pre-defined subtextures from dict
+
         Texture of atlas itself isn't modified
 
         :type subtextures: dict[Any, tuple[Vec2, Vec2]]
         """
         for name, (start_pos, size) in subtextures.items():
-            self.packer.add_used_rect(start_pos, size)
+            self.packer.add_used_rect(Rect(start_pos, size))
 
             rect = pygame.Rect(start_pos.x, start_pos.y, size.x, size.y)
             subsurface = self.surface.subsurface(rect)
@@ -72,6 +78,7 @@ class TextureAtlas:
     def pack(self, textures: dict[Any, pygame.Surface]) -> dict[Any, Texture]:
         """
         Packs new subtextures from dict
+
         !!! This changes the texture itself
 
         Returns dict of successfully packed textures
@@ -90,7 +97,7 @@ class TextureAtlas:
                 continue
 
             # Update tex and surface
-            self.surface.blit(surf, (position.x, position.y))
+            self.surface.blit(surf, position.int_tuple)
             GLUtils.update_texture(self.tex, surf, position)
 
             u0, v0 = self.calculate_uv(position)

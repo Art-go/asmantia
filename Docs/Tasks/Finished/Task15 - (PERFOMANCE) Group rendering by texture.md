@@ -11,4 +11,4 @@ aliases:
 
 ## Steps
 - [?] group texture      status: +-?
-- [ ] ? [[Task16 - add support for texture atlases]]
+- [x] ? [[Task16 - add support for texture atlases]]

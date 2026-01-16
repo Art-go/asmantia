@@ -242,7 +242,7 @@ class SkylinePacker(Packer):
 
         for i, seg in enumerate(self.skyline):
             potential_pos = Vec2(seg.width, seg.y)
-            if potential_pos + size <= self.atlas_size:
+            if self.atlas_size.lt_or(potential_pos + size):
                 # There isn't a way to fit it in this segment
                 continue
             if seg.height >= size.y:
